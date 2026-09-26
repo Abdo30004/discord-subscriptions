@@ -42,6 +42,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
+- specify zero host port exports and direct traefik web access ([82612d6](https://github.com/Abdo30004/discord-subscriptions/commit/82612d63888f0c492b420361724d1866a70175b8))
 - document ci/cd pipelines, automated changelog system, and agent rules ([52d54f3](https://github.com/Abdo30004/discord-subscriptions/commit/52d54f386e6bbc2b264fc1990641c3012cfd119a))
 - provide comprehensive architectural specifications, runbooks, and agent rules ([5a19147](https://github.com/Abdo30004/discord-subscriptions/commit/5a19147acfd9ca24131b693f18ce341431c423a9))
 
