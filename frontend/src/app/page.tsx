@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Sparkles,
   Zap,
@@ -16,11 +17,32 @@ import {
   Layers,
   Lock,
   Loader2,
+  LogIn,
+  Code,
 } from 'lucide-react';
 import { getCatalogBots } from '@/lib/api';
 import { BotTemplate } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-7xl mx-auto py-12 px-4 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-blurple" /> Loading Platform...
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const authParam = searchParams.get('auth');
+  const { user, loginWithDiscord, loginAsDev } = useAuth();
+
   const [bots, setBots] = useState<BotTemplate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +64,53 @@ export default function HomePage() {
 
   return (
     <div className="space-y-24 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* Auth Alerts when redirected */}
+      {authParam === 'required' && (
+        <div className="max-w-3xl mx-auto p-4 rounded-xl bg-blurple/15 border border-blurple/40 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-blurple/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-blurple/20 text-blurple shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">Sign In Required</h4>
+              <p className="text-xs text-slate-300">
+                You need to sign in with Discord to access the Bot Fleet Dashboard and manage your servers.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => loginAsDev()}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center gap-1.5"
+            >
+              <Code className="w-3.5 h-3.5 text-emerald-400" /> Dev Login
+            </button>
+            <button
+              type="button"
+              onClick={() => loginWithDiscord()}
+              className="px-3.5 py-1.5 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-bold transition-all shadow flex items-center gap-1.5"
+            >
+              <LogIn className="w-3.5 h-3.5" /> Sign In
+            </button>
+          </div>
+        </div>
+      )}
+
+      {authParam === 'admin_required' && (
+        <div className="max-w-3xl mx-auto p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-left flex items-center gap-3 shadow-lg shadow-rose-500/10">
+          <div className="p-2.5 rounded-lg bg-rose-500/20 text-rose-400 shrink-0">
+            <Shield className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-white">Administrator Access Restricted</h4>
+            <p className="text-xs text-slate-300">
+              The Admin Command Hub is restricted to verified platform administrators.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="text-center space-y-6 pt-8 pb-4 relative">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blurple/15 border border-blurple/30 text-blurple text-xs font-semibold tracking-wide uppercase">
@@ -66,12 +135,22 @@ export default function HomePage() {
           >
             Explore Bot Catalog <ArrowRight className="w-4 h-4" />
           </Link>
-          <Link
-            href="/dashboard"
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-all"
-          >
-            Manage Existing Servers
-          </Link>
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-all"
+            >
+              Manage Bot Fleet
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => loginWithDiscord()}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-all"
+            >
+              <LogIn className="w-4 h-4" /> Sign In with Discord
+            </button>
+          )}
         </div>
 
         {/* Feature Badges */}

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ShieldCheck,
+  ShieldAlert,
   Zap,
   Tag,
   Gift,
@@ -23,8 +25,12 @@ import {
   adminGrantSubscription,
 } from '@/lib/api';
 import { TokenPoolStats } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminPage() {
+  const router = useRouter();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
+
   const [stats, setStats] = useState<TokenPoolStats>({});
   const [activeTab, setActiveTab] = useState<'pool' | 'promo' | 'voucher' | 'grant'>('pool');
   const [loading, setLoading] = useState(false);
@@ -69,8 +75,16 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    if (!authLoading && (!user || !isAdmin)) {
+      router.replace('/?auth=admin_required');
+    }
+  }, [user, isAdmin, authLoading, router]);
+
+  useEffect(() => {
+    if (user && isAdmin) {
+      fetchStats();
+    }
+  }, [user, isAdmin]);
 
   const handleAddToken = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +182,27 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-center px-4">
+        <Loader2 className="w-10 h-10 animate-spin text-blurple" />
+        <p className="text-slate-400 text-sm">Verifying administrator authorization...</p>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-center px-4">
+        <ShieldAlert className="w-12 h-12 text-rose-500" />
+        <h2 className="text-xl font-bold text-white">Administrator Access Required</h2>
+        <p className="text-slate-400 text-sm max-w-md">
+          This portal is restricted to platform administrators. Redirecting you to the home page...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8 space-y-8">

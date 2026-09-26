@@ -24,6 +24,7 @@ export default function Navbar() {
     guilds,
     selectedGuild,
     selectGuild,
+    isAdmin,
     isLoading,
     loginWithDiscord,
     loginAsDev,
@@ -33,8 +34,8 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: 'Overview', icon: Sparkles },
     { href: '/store', label: 'Bot Catalog', icon: ShoppingBag },
-    { href: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
-    { href: '/admin', label: 'Admin Hub', icon: ShieldCheck },
+    ...(user ? [{ href: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard }] : []),
+    ...(user && isAdmin ? [{ href: '/admin', label: 'Admin Hub', icon: ShieldCheck }] : []),
   ];
 
   return (

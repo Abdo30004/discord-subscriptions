@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Server,
@@ -47,10 +47,17 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const activatedSubId = searchParams.get('activated');
 
-  const { user, guilds, selectedGuild, selectGuild, loginWithDiscord, loginAsDev } = useAuth();
+  const { user, guilds, selectedGuild, selectGuild, loginWithDiscord, loginAsDev, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/?auth=required');
+    }
+  }, [user, isLoading, router]);
 
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
@@ -144,34 +151,23 @@ function DashboardContent() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-center px-4">
+        <Loader2 className="w-10 h-10 animate-spin text-blurple" />
+        <p className="text-slate-400 text-sm">Authenticating Discord session...</p>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
-      <div className="max-w-2xl mx-auto py-24 px-4 text-center space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-blurple/15 text-blurple mx-auto flex items-center justify-center">
-          <Bot className="w-8 h-8" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-extrabold text-white">Sign in to Access Your Bot Fleet</h1>
-          <p className="text-slate-400 text-sm max-w-md mx-auto">
-            Connect your Discord account to view your server's active subscriptions, manage deployments, and customize bot personas.
-          </p>
-        </div>
-        <div className="flex justify-center gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => loginWithDiscord()}
-            className="py-3 px-6 rounded-xl bg-blurple hover:bg-blurple-hover text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-blurple/25 transition-all"
-          >
-            <LogIn className="w-4 h-4" /> Sign In with Discord
-          </button>
-          <button
-            type="button"
-            onClick={() => loginAsDev()}
-            className="py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-all"
-          >
-            Dev Instant Login
-          </button>
-        </div>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-center px-4">
+        <Bot className="w-12 h-12 text-blurple animate-pulse" />
+        <h2 className="text-xl font-bold text-white">Authentication Required</h2>
+        <p className="text-slate-400 text-sm max-w-md">
+          Please sign in to access your server dashboard. Redirecting to home...
+        </p>
       </div>
     );
   }

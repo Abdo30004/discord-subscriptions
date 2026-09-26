@@ -3,11 +3,11 @@ import { Server, Activity, ShieldCheck, Cpu } from 'lucide-react';
 
 export default function Footer() {
   const services = [
-    { name: 'auth-svc', port: 8080, status: 'online' },
-    { name: 'catalog-svc', port: 8081, status: 'online' },
-    { name: 'billing-svc', port: 8082, status: 'online' },
-    { name: 'deploy-svc', port: 8083, status: 'online' },
-    { name: 'monitor-svc', port: 8084, status: 'online' },
+    { name: 'auth-svc', path: '/api/v1/auth', status: 'online' },
+    { name: 'catalog-svc', path: '/api/v1/catalog', status: 'online' },
+    { name: 'billing-svc', path: '/api/v1/billing', status: 'online' },
+    { name: 'deploy-svc', path: '/api/v1/deployments', status: 'online' },
+    { name: 'monitor-svc', path: '/api/v1/monitoring', status: 'online' },
   ];
 
   return (
@@ -19,7 +19,7 @@ export default function Footer() {
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-blurple" />
               <span className="text-xs font-mono font-medium text-slate-300">
-                Microservices Mesh Status:
+                Traefik Mesh Gateways:
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -30,7 +30,7 @@ export default function Footer() {
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   <span className="text-white font-semibold">{svc.name}</span>
-                  <span className="text-slate-500">:{svc.port}</span>
+                  <span className="text-slate-500">{svc.path}</span>
                 </div>
               ))}
             </div>

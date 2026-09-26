@@ -147,6 +147,7 @@ export interface UserProfile {
   global_name?: string;
   avatar?: string;
   email?: string;
+  is_admin?: boolean;
 }
 
 export interface AuthSession {
