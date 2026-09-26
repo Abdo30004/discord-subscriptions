@@ -58,7 +58,11 @@ func main() {
 		log.Warn("rabbitmq not available, messaging will be disabled or simulated", slog.String("error", err.Error()))
 	} else {
 		defer rmqClient.Close()
-		log.Info("connected to rabbitmq successfully")
+		if rmqClient.IsConnected() {
+			log.Info("connected to rabbitmq successfully")
+		} else {
+			log.Warn("rabbitmq initial connection pending, background reconnect active")
+		}
 	}
 
 	// 3. Connect to Vault

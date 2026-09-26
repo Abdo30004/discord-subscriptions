@@ -56,7 +56,11 @@ func main() {
 		log.Warn("rabbitmq not available, status change events will not be broadcast", slog.String("error", err.Error()))
 	} else {
 		defer rmqClient.Close()
-		log.Info("connected to rabbitmq successfully")
+		if rmqClient.IsConnected() {
+			log.Info("connected to rabbitmq successfully")
+		} else {
+			log.Warn("rabbitmq initial connection pending, background reconnect active")
+		}
 	}
 
 	// 3. Wire Clean Architecture layers
