@@ -56,12 +56,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: platform-secrets
-                  key: POSTGRES_USER
+                  key: MONITOR_DB_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: platform-secrets
-                  key: POSTGRES_PASSWORD
+                  key: MONITOR_DB_PASS
             - name: RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:

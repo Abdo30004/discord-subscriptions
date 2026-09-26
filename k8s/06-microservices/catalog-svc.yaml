@@ -56,12 +56,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: platform-secrets
-                  key: POSTGRES_USER
+                  key: CATALOG_DB_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: platform-secrets
-                  key: POSTGRES_PASSWORD
+                  key: CATALOG_DB_PASS
           resources:
             requests:
               cpu: 50m

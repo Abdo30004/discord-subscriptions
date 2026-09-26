@@ -57,12 +57,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: platform-secrets
-                  key: POSTGRES_USER
+                  key: DEPLOY_DB_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: platform-secrets
-                  key: POSTGRES_PASSWORD
+                  key: DEPLOY_DB_PASS
             - name: RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:

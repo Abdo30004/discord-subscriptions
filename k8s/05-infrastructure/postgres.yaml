@@ -101,12 +101,26 @@ data:
     CREATE DATABASE deploy_db;
     CREATE DATABASE monitor_db;
 
-    -- Grant privileges
-    GRANT ALL PRIVILEGES ON DATABASE auth_db TO postgres;
-    GRANT ALL PRIVILEGES ON DATABASE billing_db TO postgres;
-    GRANT ALL PRIVILEGES ON DATABASE catalog_db TO postgres;
-    GRANT ALL PRIVILEGES ON DATABASE deploy_db TO postgres;
-    GRANT ALL PRIVILEGES ON DATABASE monitor_db TO postgres;
+    -- Provision dedicated per-service users with least privilege
+    CREATE USER auth_user WITH ENCRYPTED PASSWORD 'auth_pass';
+    CREATE USER catalog_user WITH ENCRYPTED PASSWORD 'catalog_pass';
+    CREATE USER billing_user WITH ENCRYPTED PASSWORD 'billing_pass';
+    CREATE USER deploy_user WITH ENCRYPTED PASSWORD 'deploy_pass';
+    CREATE USER monitor_user WITH ENCRYPTED PASSWORD 'monitor_pass';
+
+    -- Assign ownership of each database to its corresponding service user
+    ALTER DATABASE auth_db OWNER TO auth_user;
+    ALTER DATABASE catalog_db OWNER TO catalog_user;
+    ALTER DATABASE billing_db OWNER TO billing_user;
+    ALTER DATABASE deploy_db OWNER TO deploy_user;
+    ALTER DATABASE monitor_db OWNER TO monitor_user;
+
+    -- Grant database-level privileges
+    GRANT ALL PRIVILEGES ON DATABASE auth_db TO auth_user;
+    GRANT ALL PRIVILEGES ON DATABASE catalog_db TO catalog_user;
+    GRANT ALL PRIVILEGES ON DATABASE billing_db TO billing_user;
+    GRANT ALL PRIVILEGES ON DATABASE deploy_db TO deploy_user;
+    GRANT ALL PRIVILEGES ON DATABASE monitor_db TO monitor_user;
 
     -- Setup auth_db schema
     \c auth_db;
@@ -128,6 +142,12 @@ data:
 
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin) WHERE is_admin = true;
+
+    GRANT ALL ON SCHEMA public TO auth_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO auth_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO auth_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO auth_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO auth_user;
 
     -- Setup catalog_db schema and seeds
     \c catalog_db;
@@ -176,6 +196,12 @@ data:
     ('plan-mod-pro', 'bot-mod-02', 'Dedicated Defense', 'Dedicated moderation container with sub-millisecond automated raid mitigations.', 'monthly', 999, true, '["Zero Latency Filter", "Dedicated Memory & CPU", "Unlimited Logging Retention", "Custom Bot Persona"]'::jsonb),
     ('plan-game-guild', 'bot-game-03', 'Server RPG Pass', 'Unlock multiplayer world bosses and x2 XP drops for the entire guild.', 'monthly', 499, false, '["2x Guild XP Multiplier", "Daily Boss Raids", "Exclusive Guild Cosmetics"]'::jsonb)
     ON CONFLICT (id) DO NOTHING;
+
+    GRANT ALL ON SCHEMA public TO catalog_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO catalog_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO catalog_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO catalog_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO catalog_user;
 
     -- Setup billing_db schema
     \c billing_db;
@@ -243,6 +269,12 @@ data:
     ('vouch-pro-music', 'GIFT-MUSIC-PRO-30D', 'plan-music-pro', 'music', 30, true, false)
     ON CONFLICT (code) DO NOTHING;
 
+    GRANT ALL ON SCHEMA public TO billing_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO billing_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO billing_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO billing_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO billing_user;
+
     -- Setup deploy_db schema
     \c deploy_db;
 
@@ -295,6 +327,12 @@ data:
     ('pool-game-01', 'game', '131234567890123459', 'secret/data/bots/pool/pool-game-01', 'MTMxMjM0NTY3ODkwMTIzNDU5.Gz9abc.managed_token_game_01_xyz', 'available')
     ON CONFLICT (id) DO NOTHING;
 
+    GRANT ALL ON SCHEMA public TO deploy_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO deploy_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO deploy_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO deploy_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO deploy_user;
+
     -- Setup monitor_db schema
     \c monitor_db;
 
@@ -328,3 +366,10 @@ data:
     CREATE INDEX IF NOT EXISTS idx_monitoring_targets_is_active ON monitoring_targets(is_active);
     CREATE INDEX IF NOT EXISTS idx_monitoring_targets_guild_id ON monitoring_targets(guild_id);
     CREATE INDEX IF NOT EXISTS idx_health_logs_target_id ON health_logs(target_id, checked_at DESC);
+
+    GRANT ALL ON SCHEMA public TO monitor_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO monitor_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO monitor_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO monitor_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO monitor_user;
+
