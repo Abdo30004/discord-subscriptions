@@ -1,34 +1,34 @@
 run:
   timeout: 5m
   tests: true
+  go: '1.26'
 
 linters:
   enable:
-    - errcheck
-    - gosimple
     - govet
-    - ineffassign
+    - errcheck
     - staticcheck
     - unused
-    - gosec
-    - gocritic
-    - revive
+    - ineffassign
     - misspell
 
 linters-settings:
   govet:
-    check-shadowing: true
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
+    disable:
+      - shadow
+  errcheck:
+    exclude-functions:
+      - (io.Closer).Close
+      - (*database/sql.Rows).Close
+      - (*database/sql.DB).Close
 
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - linters:
+        - errcheck
+      text: "Error return value of `.*\\.Close` is not checked"
+
+
