@@ -16,20 +16,23 @@ The frontend is built on modern web standards with performance and accessibility
 ```mermaid
 flowchart TD
     subgraph Routes ["App Router Routes (src/app)"]
-        Landing["/ (Landing Page)"]
-        Store["/store (Catalog & Plans)"]
-        Checkout["/checkout (Purchase Flow)"]
-        Dashboard["/dashboard (Fleet Dashboard)"]
-        Admin["/admin (Token Pool Management)"]
-        Setup["/setup (Bot Invite & Token Setup)"]
+        Landing["/ (Landing Page - Live Catalog)"]
+        Store["/store (Marketplace & Guild Selection)"]
+        Checkout["/checkout (Purchase & Voucher Redemption)"]
+        Dashboard["/dashboard (Fleet Dashboard & Persona Editor)"]
+        Admin["/admin (Vault Pool & Coupon Ingestion)"]
+        Setup["/setup/[id] (Self-Setup Walkthrough)"]
+        Callback["/auth/callback (Discord OAuth2 Callback)"]
     end
 
-    subgraph ClientLib ["Client Services (src/lib)"]
-        API["api.ts (Typed REST Client)"]
+    subgraph StateAndClient ["State & API Client Layer"]
+        AuthCtx["AuthContext.tsx (User & Guild Session)"]
+        API["api.ts (Pure REST Client - Zero Mocks)"]
         Types["types.ts (Domain Interfaces)"]
     end
 
-    subgraph Microservices ["Backend Microservices"]
+    subgraph Gateway ["Edge Gateway & Services"]
+        Traefik["Traefik v3 (:80)"]
         Auth["auth-svc :8080"]
         Catalog["catalog-svc :8081"]
         Billing["billing-svc :8082"]
@@ -37,9 +40,12 @@ flowchart TD
         Monitor["monitor-svc :8084"]
     end
 
+    Routes --> AuthCtx
+    AuthCtx --> API
     Routes --> API
     API --> Types
-    API --> Auth & Catalog & Billing & Deploy & Monitor
+    API --> Traefik
+    Traefik --> Auth & Catalog & Billing & Deploy & Monitor
 ```
 
 ---
@@ -113,9 +119,12 @@ flowchart TD
 
 ## 3. Environment Configuration
 
-The frontend consumes public environment variables defined in `.env.local` or Docker Compose:
+When deployed behind the **Traefik Edge Gateway**, the frontend defaults all service URLs to relative paths (`""`), routing every API call through Traefik port 80 without requiring CORS or open service ports on the host.
+
+For standalone local development without Docker, environment variables can be provided in `frontend/.env.local`:
 
 ```bash
+# Optional overrides (defaults to relative routing via Traefik "")
 NEXT_PUBLIC_AUTH_SVC_URL=http://localhost:8080
 NEXT_PUBLIC_CATALOG_SVC_URL=http://localhost:8081
 NEXT_PUBLIC_BILLING_SVC_URL=http://localhost:8082
