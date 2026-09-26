@@ -20,6 +20,8 @@ var (
 type Client interface {
 	PutBotToken(ctx context.Context, botID, token string) error
 	GetBotToken(ctx context.Context, botID string) (string, error)
+	PutUserTokens(ctx context.Context, userID, accessToken, refreshToken string, expiresAt time.Time) error
+	GetUserTokens(ctx context.Context, userID string) (accessToken, refreshToken string, expiresAt time.Time, err error)
 }
 
 // VaultClient provides HTTP access to Vault KV v2 secrets engine.
@@ -146,4 +148,88 @@ func (v *VaultClient) GetBotToken(ctx context.Context, botID string) (string, er
 	}
 
 	return token, nil
+}
+
+// PutUserTokens securely stores a user's Discord OAuth access and refresh tokens at secret/data/users/<userID>.
+func (v *VaultClient) PutUserTokens(ctx context.Context, userID, accessToken, refreshToken string, expiresAt time.Time) error {
+	url := fmt.Sprintf("%s/v1/secret/data/users/%s", v.baseURL, userID)
+
+	payload := secretWritePayload{
+		Data: map[string]string{
+			"access_token":  accessToken,
+			"refresh_token": refreshToken,
+			"expires_at":    expiresAt.Format(time.RFC3339),
+		},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal vault payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create vault request: %w", err)
+	}
+
+	req.Header.Set("X-Vault-Token", v.token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := v.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute vault request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("vault responded with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}
+
+// GetUserTokens retrieves a user's Discord OAuth tokens from secret/data/users/<userID>.
+func (v *VaultClient) GetUserTokens(ctx context.Context, userID string) (string, string, time.Time, error) {
+	url := fmt.Sprintf("%s/v1/secret/data/users/%s", v.baseURL, userID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", "", time.Time{}, fmt.Errorf("failed to create vault request: %w", err)
+	}
+
+	req.Header.Set("X-Vault-Token", v.token)
+
+	resp, err := v.httpClient.Do(req)
+	if err != nil {
+		return "", "", time.Time{}, fmt.Errorf("failed to execute vault request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return "", "", time.Time{}, ErrSecretNotFound
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", "", time.Time{}, fmt.Errorf("vault responded with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var vaultResp secretReadResponse
+	if err := json.NewDecoder(resp.Body).Decode(&vaultResp); err != nil {
+		return "", "", time.Time{}, fmt.Errorf("failed to decode vault response: %w", err)
+	}
+
+	accessToken := vaultResp.Data.Data["access_token"]
+	refreshToken := vaultResp.Data.Data["refresh_token"]
+	var expiresAt time.Time
+	if expStr, ok := vaultResp.Data.Data["expires_at"]; ok && expStr != "" {
+		expiresAt, _ = time.Parse(time.RFC3339, expStr)
+	}
+
+	if accessToken == "" {
+		return "", "", time.Time{}, errors.New("access token missing in user secret data")
+	}
+
+	return accessToken, refreshToken, expiresAt, nil
 }
