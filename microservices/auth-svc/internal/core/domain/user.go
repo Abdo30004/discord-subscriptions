@@ -22,6 +22,7 @@ type User struct {
 	IsSuperAdmin   bool       `json:"is_super_admin"`
 	AdminPromotedAt *time.Time `json:"admin_promoted_at,omitempty"`
 	AdminPromotedBy string     `json:"admin_promoted_by,omitempty"`
+	HasOAuthToken   bool       `json:"has_oauth_token"`
 	AccessToken    string     `json:"-"`
 	RefreshToken   string     `json:"-"`
 	TokenExpiresAt time.Time  `json:"-"`

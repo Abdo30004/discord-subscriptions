@@ -91,12 +91,39 @@ func (m *mockTokenMgr) ValidateToken(tokenString string) (*domain.UserClaims, er
 	}, nil
 }
 
+type mockVaultClient struct {
+	userTokens map[string]string
+}
+
+func (m *mockVaultClient) PutBotToken(ctx context.Context, botID, token string) error {
+	return nil
+}
+func (m *mockVaultClient) GetBotToken(ctx context.Context, botID string) (string, error) {
+	return "bot_token", nil
+}
+func (m *mockVaultClient) PutUserTokens(ctx context.Context, userID, accessToken, refreshToken string, expiresAt time.Time) error {
+	if m.userTokens == nil {
+		m.userTokens = make(map[string]string)
+	}
+	m.userTokens[userID] = accessToken
+	return nil
+}
+func (m *mockVaultClient) GetUserTokens(ctx context.Context, userID string) (string, string, time.Time, error) {
+	if m.userTokens != nil {
+		if tok, ok := m.userTokens[userID]; ok {
+			return tok, "refresh", time.Now().Add(time.Hour), nil
+		}
+	}
+	return "", "", time.Time{}, errors.New("not found")
+}
+
 func TestAuthService_AuthenticateWithCode(t *testing.T) {
 	repo := &mockUserRepo{users: make(map[string]*domain.User)}
 	discordMock := &mockDiscordClient{}
 	tokenMock := &mockTokenMgr{}
+	vaultMock := &mockVaultClient{}
 
-	svc := services.NewAuthService(repo, discordMock, tokenMock, []string{"super-admin-999"}, nil)
+	svc := services.NewAuthService(repo, discordMock, tokenMock, vaultMock, []string{"super-admin-999"}, nil)
 
 	session, err := svc.AuthenticateWithCode(context.Background(), "auth_code_xyz", "http://localhost:3000/callback")
 	if err != nil {
@@ -114,16 +141,24 @@ func TestAuthService_AuthenticateWithCode(t *testing.T) {
 	if repo.users["discord-12345"] == nil {
 		t.Fatal("expected user to be saved in repository")
 	}
+
+	if vaultMock.userTokens["discord-12345"] != "mock_access_token" {
+		t.Fatal("expected user access token to be saved in vault")
+	}
 }
 
 func TestAuthService_GetUserManageableGuilds(t *testing.T) {
 	repo := &mockUserRepo{
 		users: map[string]*domain.User{
 			"discord-12345": {
-				ID:          "discord-12345",
-				Username:    "AntigravityUser",
-				AccessToken: "token123",
+				ID:       "discord-12345",
+				Username: "AntigravityUser",
 			},
+		},
+	}
+	vaultMock := &mockVaultClient{
+		userTokens: map[string]string{
+			"discord-12345": "vault_token_123",
 		},
 	}
 
@@ -135,7 +170,7 @@ func TestAuthService_GetUserManageableGuilds(t *testing.T) {
 		},
 	}
 
-	svc := services.NewAuthService(repo, discordMock, &mockTokenMgr{}, []string{"super-admin-999"}, nil)
+	svc := services.NewAuthService(repo, discordMock, &mockTokenMgr{}, vaultMock, []string{"super-admin-999"}, nil)
 
 	manageable, err := svc.GetUserManageableGuilds(context.Background(), "discord-12345")
 	if err != nil {
@@ -167,7 +202,7 @@ func TestAuthService_SuperAdminAndPromoteFlow(t *testing.T) {
 		},
 	}
 
-	svc := services.NewAuthService(repo, &mockDiscordClient{}, &mockTokenMgr{}, []string{superAdminID}, nil)
+	svc := services.NewAuthService(repo, &mockDiscordClient{}, &mockTokenMgr{}, &mockVaultClient{}, []string{superAdminID}, nil)
 
 	// Verify super admin check
 	if !svc.IsSuperAdmin(superAdminID) {

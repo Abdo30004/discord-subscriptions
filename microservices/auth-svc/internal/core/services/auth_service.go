@@ -9,6 +9,7 @@ import (
 	"github.com/discord-subscriptions/auth-svc/internal/core/domain"
 	"github.com/discord-subscriptions/auth-svc/internal/core/ports"
 	sharedErrors "github.com/discord-subscriptions/shared/errors"
+	"github.com/discord-subscriptions/shared/vault"
 	"github.com/google/uuid"
 )
 
@@ -16,6 +17,7 @@ type AuthServiceImpl struct {
 	userRepo      ports.UserRepository
 	discord       ports.DiscordClient
 	tokenMgr      ports.TokenManager
+	vaultClient   vault.Client
 	superAdminIDs map[string]struct{}
 	logger        *slog.Logger
 }
@@ -24,6 +26,7 @@ func NewAuthService(
 	userRepo ports.UserRepository,
 	discord ports.DiscordClient,
 	tokenMgr ports.TokenManager,
+	vaultClient vault.Client,
 	superAdminIDs []string,
 	logger *slog.Logger,
 ) *AuthServiceImpl {
@@ -38,6 +41,7 @@ func NewAuthService(
 		userRepo:      userRepo,
 		discord:       discord,
 		tokenMgr:      tokenMgr,
+		vaultClient:   vaultClient,
 		superAdminIDs: superMap,
 		logger:        logger,
 	}
@@ -94,18 +98,28 @@ func (s *AuthServiceImpl) AuthenticateWithCode(ctx context.Context, code, redire
 	s.hydrateUserRoles(discordUser)
 
 	now := time.Now().UTC()
+	tokenExpiresAt := now.Add(time.Duration(expiresIn) * time.Second)
 	discordUser.AccessToken = accessToken
 	discordUser.RefreshToken = refreshToken
-	discordUser.TokenExpiresAt = now.Add(time.Duration(expiresIn) * time.Second)
+	discordUser.TokenExpiresAt = tokenExpiresAt
 	discordUser.UpdatedAt = now
 	discordUser.CreatedAt = now
 
-	// 3. Upsert into database
+	// 3. Securely store OAuth tokens in HashiCorp Vault KV v2 (never in plaintext PostgreSQL)
+	if s.vaultClient != nil {
+		if err := s.vaultClient.PutUserTokens(ctx, discordUser.ID, accessToken, refreshToken, tokenExpiresAt); err != nil {
+			s.logger.Error("failed storing user oauth tokens in vault", slog.String("error", err.Error()), slog.String("user_id", discordUser.ID))
+		} else {
+			discordUser.HasOAuthToken = true
+		}
+	}
+
+	// 4. Upsert user into database
 	if err := s.userRepo.Upsert(ctx, discordUser); err != nil {
 		return nil, fmt.Errorf("failed saving user profile: %w", err)
 	}
 
-	// 4. Generate JWT
+	// 5. Generate JWT
 	jwtToken, expiresAt, err := s.tokenMgr.GenerateToken(*discordUser)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating auth token: %w", err)
@@ -116,6 +130,7 @@ func (s *AuthServiceImpl) AuthenticateWithCode(ctx context.Context, code, redire
 		slog.String("username", discordUser.Username),
 		slog.Bool("is_admin", discordUser.IsAdmin),
 		slog.Bool("is_super_admin", discordUser.IsSuperAdmin),
+		slog.Bool("vault_stored", discordUser.HasOAuthToken),
 	)
 
 	return &domain.AuthSession{
@@ -147,7 +162,18 @@ func (s *AuthServiceImpl) GetUserManageableGuilds(ctx context.Context, userID st
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
 
-	allGuilds, err := s.discord.GetUserGuilds(ctx, user.AccessToken)
+	accessToken := user.AccessToken
+	if accessToken == "" && s.vaultClient != nil {
+		vaultAccess, _, _, err := s.vaultClient.GetUserTokens(ctx, user.ID)
+		if err == nil && vaultAccess != "" {
+			accessToken = vaultAccess
+		}
+	}
+	if accessToken == "" {
+		return nil, fmt.Errorf("no valid discord access token found for user %s", userID)
+	}
+
+	allGuilds, err := s.discord.GetUserGuilds(ctx, accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed fetching user guilds from discord: %w", err)
 	}

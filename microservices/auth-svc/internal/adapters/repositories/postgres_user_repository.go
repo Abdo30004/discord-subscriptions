@@ -23,22 +23,21 @@ func (r *PostgresUserRepository) Upsert(ctx context.Context, user *domain.User) 
 	query := `
 		INSERT INTO users (
 			id, username, global_name, avatar, email, 
-			access_token, refresh_token, token_expires_at, is_admin, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			has_oauth_token, token_expires_at, is_admin, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (id) DO UPDATE SET
 			username = EXCLUDED.username,
 			global_name = EXCLUDED.global_name,
 			avatar = EXCLUDED.avatar,
 			email = EXCLUDED.email,
-			access_token = EXCLUDED.access_token,
-			refresh_token = EXCLUDED.refresh_token,
+			has_oauth_token = EXCLUDED.has_oauth_token,
 			token_expires_at = EXCLUDED.token_expires_at,
 			updated_at = EXCLUDED.updated_at
 	`
 	_, err := r.db.ExecContext(
 		ctx, query,
 		user.ID, user.Username, user.GlobalName, user.Avatar, user.Email,
-		user.AccessToken, user.RefreshToken, user.TokenExpiresAt,
+		user.HasOAuthToken, user.TokenExpiresAt,
 		user.IsAdmin, user.CreatedAt, user.UpdatedAt,
 	)
 	if err != nil {
@@ -52,18 +51,18 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (*domai
 	query := `
 		SELECT id, username, global_name, avatar, email, 
 		       is_admin, admin_promoted_at, admin_promoted_by,
-		       access_token, refresh_token, token_expires_at, created_at, updated_at
+		       has_oauth_token, token_expires_at, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
 	var u domain.User
-	var globalName, avatar, email, accToken, refToken, adminPromotedBy sql.NullString
+	var globalName, avatar, email, adminPromotedBy sql.NullString
 	var tokenExpires, adminPromotedAt sql.NullTime
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&u.ID, &u.Username, &globalName, &avatar, &email,
 		&u.IsAdmin, &adminPromotedAt, &adminPromotedBy,
-		&accToken, &refToken, &tokenExpires, &u.CreatedAt, &u.UpdatedAt,
+		&u.HasOAuthToken, &tokenExpires, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -87,12 +86,6 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (*domai
 	if adminPromotedAt.Valid {
 		t := adminPromotedAt.Time
 		u.AdminPromotedAt = &t
-	}
-	if accToken.Valid {
-		u.AccessToken = accToken.String
-	}
-	if refToken.Valid {
-		u.RefreshToken = refToken.String
 	}
 	if tokenExpires.Valid {
 		u.TokenExpiresAt = tokenExpires.Time

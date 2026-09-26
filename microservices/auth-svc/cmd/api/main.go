@@ -20,6 +20,7 @@ import (
 	"github.com/discord-subscriptions/shared/database"
 	"github.com/discord-subscriptions/shared/health"
 	"github.com/discord-subscriptions/shared/logger"
+	"github.com/discord-subscriptions/shared/vault"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -51,11 +52,15 @@ func main() {
 	userRepo := repositories.NewPostgresUserRepository(db)
 	discordClient := discord.NewClient(cfg.DiscordClientID, cfg.DiscordClientSecret, log)
 	tokenMgr := jwtAdapter.NewManager(cfg.JWTSecret, 7*24*time.Hour)
-	authService := services.NewAuthService(userRepo, discordClient, tokenMgr, cfg.SuperAdminIDs, log)
+	vaultClient := vault.NewVaultClient(cfg.VaultAddr, cfg.VaultToken)
+	authService := services.NewAuthService(userRepo, discordClient, tokenMgr, vaultClient, cfg.SuperAdminIDs, log)
 
-	// 3. Health Checker with PostgreSQL ping probe
+	// 3. Health Checker with PostgreSQL and Vault ping probes
 	healthChecker := health.NewChecker("auth-svc", "1.0.0")
 	healthChecker.AddDatabaseCheck("postgres", db)
+	healthChecker.AddCheck("vault", func(ctx context.Context) error {
+		return vaultClient.Ping(ctx)
+	})
 
 	// 4. Setup HTTP server
 	mux := http.NewServeMux()

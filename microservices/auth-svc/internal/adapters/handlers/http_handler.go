@@ -48,6 +48,7 @@ func (h *HTTPHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/v1/auth/discord/url", h.GetOAuthURL)
 	mux.HandleFunc("POST /api/v1/auth/discord/callback", h.Callback)
+	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
 	mux.HandleFunc("GET /api/v1/auth/me", h.GetProfile)
 	mux.HandleFunc("GET /api/v1/auth/guilds", h.GetGuilds)
 	mux.HandleFunc("GET /api/v1/auth/admins", h.ListAdmins)
@@ -94,8 +95,31 @@ func (h *HTTPHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    session.Token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7,
+	})
+
 	h.respondJSON(w, http.StatusOK, map[string]any{
 		"data": session,
+	})
+}
+
+func (h *HTTPHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	})
+	h.respondJSON(w, http.StatusOK, map[string]string{
+		"message": "Logged out successfully",
 	})
 }
 
@@ -271,6 +295,9 @@ func (h *HTTPHandler) extractBearerToken(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
 		return strings.TrimSpace(authHeader[7:])
+	}
+	if cookie, err := r.Cookie("auth_token"); err == nil && cookie.Value != "" {
+		return cookie.Value
 	}
 	return ""
 }

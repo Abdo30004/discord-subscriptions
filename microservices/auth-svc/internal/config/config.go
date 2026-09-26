@@ -15,6 +15,8 @@ type Config struct {
 	DiscordClientSecret string
 	JWTSecret           string
 	SuperAdminIDs       []string
+	VaultAddr           string
+	VaultToken          string
 	DB                  database.Config
 }
 
@@ -39,6 +41,8 @@ func Load() Config {
 		DiscordClientSecret: config.GetString("DISCORD_CLIENT_SECRET", ""),
 		JWTSecret:           config.GetString("JWT_SECRET", "super-secret-development-jwt-key-replace-in-production"),
 		SuperAdminIDs:       superAdminIDs,
+		VaultAddr:           config.GetString("VAULT_ADDR", "http://localhost:8200"),
+		VaultToken:          config.GetString("VAULT_DEV_ROOT_TOKEN", "root"),
 		DB: database.Config{
 			Host:     config.GetString("POSTGRES_HOST", "localhost"),
 			Port:     config.GetInt("POSTGRES_PORT", 5432),
