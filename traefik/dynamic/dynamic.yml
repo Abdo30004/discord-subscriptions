@@ -1,0 +1,125 @@
+http:
+  # Middlewares
+  middlewares:
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowOriginList:
+          - "*"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    compress:
+      compress: {}
+
+    api-ratelimit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+  # Routers
+  routers:
+    # 1. auth-svc: OAuth2 & JWT
+    auth-router:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/api/v1/auth`)"
+      service: auth-service
+      middlewares:
+        - cors-headers
+        - compress
+      priority: 100
+
+    # 2. catalog-svc: Bot templates & Plans
+    catalog-router:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/api/v1/catalog`) || PathPrefix(`/api/v1/bots`)"
+      service: catalog-service
+      middlewares:
+        - cors-headers
+        - compress
+      priority: 100
+
+    # 3. billing-svc: Subscriptions, Promos, Vouchers, Webhooks
+    billing-router:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/api/v1/billing`) || PathPrefix(`/api/v1/subscriptions`) || PathPrefix(`/api/v1/promos`) || PathPrefix(`/api/v1/vouchers`) || PathPrefix(`/api/v1/webhooks`)"
+      service: billing-service
+      middlewares:
+        - cors-headers
+        - compress
+      priority: 100
+
+    # 4. deploy-svc: Deployments & Token Pool
+    deploy-router:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/api/v1/deployments`) || PathPrefix(`/api/v1/deploy`) || PathPrefix(`/api/v1/token-pool`)"
+      service: deploy-service
+      middlewares:
+        - cors-headers
+        - compress
+      priority: 100
+
+    # 5. monitor-svc: Targets & Health Logs
+    monitor-router:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/api/v1/targets`) || PathPrefix(`/api/v1/monitor`)"
+      service: monitor-service
+      middlewares:
+        - cors-headers
+        - compress
+      priority: 100
+
+    # 6. frontend: Web Dashboard & Storefront (Catch-all)
+    frontend-router:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/`)"
+      service: frontend-service
+      middlewares:
+        - compress
+      priority: 1
+
+  # Internal Upstream Services
+  services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-svc:8080"
+
+    catalog-service:
+      loadBalancer:
+        servers:
+          - url: "http://catalog-svc:8081"
+
+    billing-service:
+      loadBalancer:
+        servers:
+          - url: "http://billing-svc:8082"
+
+    deploy-service:
+      loadBalancer:
+        servers:
+          - url: "http://deploy-svc:8083"
+
+    monitor-service:
+      loadBalancer:
+        servers:
+          - url: "http://monitor-svc:8084"
+
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:3000"
