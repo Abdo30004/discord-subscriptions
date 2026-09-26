@@ -58,7 +58,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
-- update Phase 2 resilience and per-service database users specifications ([1302f64](https://github.com/Abdo30004/discord-subscriptions/commit/1302f64ed63d27402f8e14b5d9d4d9765575c47b))
+- update Phase 2 resilience and per-service database users specifications ([a2d2b85](https://github.com/Abdo30004/discord-subscriptions/commit/a2d2b85b77b3ac950f66c2f74dc5fcfdbf688782))
 - update database schemas, api references, and security audit report ([ae4a11a](https://github.com/Abdo30004/discord-subscriptions/commit/ae4a11aede0525e2035d2cee5e3893d37cda178a))
 - document super admin hierarchy, admin promotion endpoints, and staff panel ([8ddbf57](https://github.com/Abdo30004/discord-subscriptions/commit/8ddbf575d75fca4dbe46c364355bce32017bd280))
 - update .env.example with comprehensive platform config and add env sync rule ([877f4bc](https://github.com/Abdo30004/discord-subscriptions/commit/877f4bc25e01683c1e75aa7cd727f2f056a6b8d1))
