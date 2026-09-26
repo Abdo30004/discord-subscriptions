@@ -15,6 +15,9 @@ erDiagram
         VARCHAR_128 global_name
         VARCHAR_128 avatar
         VARCHAR_255 email
+        BOOLEAN is_admin
+        TIMESTAMPTZ admin_promoted_at
+        VARCHAR_64 admin_promoted_by
         TEXT access_token
         TEXT refresh_token
         TIMESTAMPTZ token_expires_at
@@ -157,9 +160,10 @@ erDiagram
 ### 2.1 `auth_db`
 - **Owner**: `auth-svc` (Port 8080)
 - **Tables**:
-  - `users`: Stores Discord user accounts, OAuth access tokens, and refresh tokens.
+  - `users`: Stores Discord user accounts, OAuth access tokens, refresh tokens, and administrator appointments (`is_admin`, `admin_promoted_at`, `admin_promoted_by`).
 - **Indexes**:
   - `idx_users_username` on `users(username)`
+  - `idx_users_is_admin` on `users(is_admin) WHERE is_admin = true`
 
 ---
 

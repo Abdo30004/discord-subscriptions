@@ -11,6 +11,10 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **deploy**: inject SUPER_ADMIN_DISCORD_IDS into auth-svc docker compose environment ([f3e5479](https://github.com/Abdo30004/discord-subscriptions/commit/f3e5479cdc151f27456da86db6640d3b17a892e7))
+- **frontend**: eradicate devLogin and add staff management panel to admin dashboard ([a9d6535](https://github.com/Abdo30004/discord-subscriptions/commit/a9d6535e1b47e7ddefbcbf74ccc85219851e4e7b))
+- **auth**: implement super admin hierarchy and admin promotion endpoints ([eaecf51](https://github.com/Abdo30004/discord-subscriptions/commit/eaecf51706b0d87c7f631d7daa4c58b2007eaa48))
+- **auth**: add admin columns to users table and SUPER_ADMIN_DISCORD_IDS to env template ([051aa59](https://github.com/Abdo30004/discord-subscriptions/commit/051aa59ccba60ab2d720b9dc26afb4e3d49a5211))
 - **bot**: configure manager-bot container to route API requests through Traefik ([e7cd82e](https://github.com/Abdo30004/discord-subscriptions/commit/e7cd82e1e0e285429cb2b237c85002ec77263edb))
 - **frontend**: enforce conditional navigation and strict route authentication guards ([f698d5d](https://github.com/Abdo30004/discord-subscriptions/commit/f698d5d9236c95ef7ce22ddc00caaf896e0f9421))
 - **frontend**: fully connect application to backend apis and remove mock data ([28a0adc](https://github.com/Abdo30004/discord-subscriptions/commit/28a0adc7c5f53758b7c27567fcf67017751ecb5d))

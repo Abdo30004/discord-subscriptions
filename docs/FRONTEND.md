@@ -110,12 +110,17 @@ flowchart TD
 
 ### 2.5 Admin Control Panel (`src/app/admin/page.tsx`)
 - **URL**: `/admin`
-- **Access Guard**: Strictly restricted route (`user.is_admin`). Non-admin or unauthenticated visitors are redirected to `/?auth=admin_required`. Hidden from navigation unless authenticated as an administrator.
+- **Access Guard**: Strictly restricted route (`user.is_admin || user.is_super_admin`). Non-admin or unauthenticated visitors are redirected to `/?auth=admin_required`. Hidden from navigation unless authenticated as an administrator.
 - **Features**:
-  - **Token Pool Gauges**: Visual charts displaying available, assigned, and quarantined pre-warmed tokens
-  - **Token Ingestion Form**: Secure interface for administrators to submit newly created Discord bot credentials into HashiCorp Vault
-  - **Voucher Generator**: Admin tool to generate 30-day, 60-day, or lifetime gift cards
-  - **Global Subscriptions Table**: Searchable ledger of all active server licenses
+  - **Token Pool Gauges**: Visual charts displaying available, assigned, and quarantined pre-warmed tokens.
+  - **Token Ingestion Form**: Secure interface for administrators to submit newly created Discord bot credentials into HashiCorp Vault.
+  - **Promo Codes & Vouchers Generator**: Interface to create percentage/fixed discount codes and 100% covered gift card vouchers.
+  - **Admin Manual Grant**: Instant provisioning of server licenses bypassing payment processors.
+  - **Staff & Administrator Roster**:
+    - Two-tier role hierarchy: Super Admins (immutable, configured via `SUPER_ADMIN_DISCORD_IDS`) and Appointed Admins (database-backed).
+    - Super Admin user search tool with real-time avatar previews and 1-click "Promote to Admin" / "Revoke Admin" controls.
+    - Appointed admins see active administrators with mutation controls safely protected.
+- **Authentication Exclusivity**: Discord OAuth2 is the sole authentication mechanism across the platform. Development and mock logins have been completely removed.
 
 ---
 

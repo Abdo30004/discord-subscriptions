@@ -53,22 +53,32 @@ Returns service availability status.
 { "status": "ok", "service": "auth-svc" }
 ```
 
-#### `GET /api/v1/auth/discord/login`
-Redirects browser to Discord OAuth2 authorization URL (`https://discord.com/api/oauth2/authorize?client_id=...&scope=identify+guilds+email`).
+#### `GET /api/v1/auth/discord/url`
+Generates the Discord OAuth2 authorization URL with requested redirect URI.
+- **Query Params**: `redirect_uri` (optional string)
+- **Response**: `200 OK`
+```json
+{ "url": "https://discord.com/oauth2/authorize?client_id=...&scope=identify+guilds+email" }
+```
 
-#### `GET /api/v1/auth/discord/callback`
-Exchanges the authorization code for a Discord user profile and returns a session JWT.
-- **Query Params**: `code` (string), `state` (string)
+#### `POST /api/v1/auth/discord/callback`
+Exchanges the authorization code for a Discord user profile, updates `auth_db.users`, and returns a session JWT.
+- **Body**: `{ "code": "...", "redirect_uri": "..." }`
 - **Response**: `200 OK`
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "112233445566778899",
-    "username": "ServerOwner",
-    "global_name": "Server Owner",
-    "avatar": "a_1234567890abcdef",
-    "email": "owner@example.com"
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_at": "2026-10-03T12:00:00Z",
+    "user": {
+      "id": "112233445566778899",
+      "username": "ServerOwner",
+      "global_name": "Server Owner",
+      "avatar": "a_1234567890abcdef",
+      "email": "owner@example.com",
+      "is_admin": false,
+      "is_super_admin": false
+    }
   }
 }
 ```
@@ -79,13 +89,58 @@ Retrieves current user identity from the Bearer token.
 - **Response**: `200 OK`
 ```json
 {
-  "id": "112233445566778899",
-  "username": "ServerOwner",
-  "global_name": "Server Owner",
-  "avatar": "a_1234567890abcdef",
-  "email": "owner@example.com"
+  "data": {
+    "id": "112233445566778899",
+    "username": "ServerOwner",
+    "global_name": "Server Owner",
+    "avatar": "a_1234567890abcdef",
+    "email": "owner@example.com",
+    "is_admin": false,
+    "is_super_admin": false
+  }
 }
 ```
+
+#### `GET /api/v1/auth/guilds`
+Retrieves all Discord guilds where the authenticated user has server management permissions (`MANAGE_GUILD` or `ADMINISTRATOR`).
+- **Headers**: `Authorization: Bearer <jwt>`
+- **Response**: `200 OK`
+```json
+{
+  "data": [
+    {
+      "id": "112233445566778899",
+      "name": "My Discord Guild",
+      "icon": "icon_hash",
+      "owner": true,
+      "permissions": "8",
+      "canManage": true
+    }
+  ]
+}
+```
+
+#### `GET /api/v1/auth/admins`
+Lists all platform administrators (Super Admins configured via `SUPER_ADMIN_DISCORD_IDS` and appointed admins stored in database).
+- **Headers**: `Authorization: Bearer <jwt>` (Admin or Super Admin only)
+- **Response**: `200 OK`
+
+#### `GET /api/v1/auth/users/search`
+Searches registered users in `auth_db.users` by Discord Snowflake ID or username.
+- **Headers**: `Authorization: Bearer <jwt>` (Super Admin only)
+- **Query Params**: `q` (string)
+- **Response**: `200 OK`
+
+#### `POST /api/v1/auth/admins`
+Promotes a registered Discord user to platform administrator.
+- **Headers**: `Authorization: Bearer <jwt>` (Super Admin only)
+- **Body**: `{ "discord_id": "112233445566778899" }`
+- **Response**: `200 OK`
+
+#### `DELETE /api/v1/auth/admins/{discordId}`
+Revokes administrator privileges from an appointed administrator. Super Admins configured via environment cannot be revoked.
+- **Headers**: `Authorization: Bearer <jwt>` (Super Admin only)
+- **Response**: `200 OK`
 
 ---
 

@@ -21,6 +21,7 @@ Copy the sample environment file to `.env`:
 ```bash
 cp .env.example .env
 ```
+Ensure `SUPER_ADMIN_DISCORD_IDS` is populated with your Discord Snowflake ID (comma-separated if multiple administrators) to grant permanent Super Admin permissions upon signing in with Discord.
 
 ### 2.2 Starting Local Infrastructure
 Start PostgreSQL, RabbitMQ, and HashiCorp Vault using Docker Compose:
