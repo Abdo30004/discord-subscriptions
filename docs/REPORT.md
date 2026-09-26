@@ -569,29 +569,29 @@ sequenceDiagram
 
 ## 9. CI/CD & DevOps
 
-### 9.1 GitHub Actions Pipeline Coverage
+### 9.1 GitHub Actions Pipeline Coverage — ✅ Enhanced (Phase 4)
 
-| Workflow | Triggers | What It Does | Gaps |
+| Workflow | Triggers | What It Does | Gaps / Status |
 |:---|:---|:---|:---|
-| `ci-go.yml` | Push/PR to `main` | Go test + build all services | ❌ No `golangci-lint` step |
-| `ci-frontend.yml` | Push/PR to `main` | Next.js build | ❌ No TypeScript strict check, no E2E tests |
-| `ci-manager-bot.yml` | Push/PR to `main` | Bot TypeScript build | ❌ No unit tests |
+| `ci-go.yml` | Push/PR to `main` | Go test + build all services | ✅ `golangci-lint` (v1.61) + `govulncheck` security scan |
+| `ci-frontend.yml` | Push/PR to `main` | Next.js build | ✅ `npm audit --audit-level=high` + Next.js 16 build |
+| `ci-manager-bot.yml` | Push/PR to `main` | Bot TypeScript build | ✅ `npm audit --audit-level=high` + TypeScript build |
 | `ci-changelog.yml` | Push/PR to `main` | Validates CHANGELOG.md | ✅ |
 | `ci-diagrams.yml` | Push/PR to `main` | Validates Mermaid diagrams in docs | ✅ |
-| `ci-infra.yml` | Push/PR to `main` | `docker compose config` + `kubectl kustomize` | ❌ No E2E or integration |
-| `release.yml` | Tag `v*` | Build + push 7 Docker images to GHCR | ❌ No image scanning |
+| `ci-infra.yml` | Push/PR to `main` | `docker compose config` + `kubectl kustomize` | ✅ Infrastructure syntax and kustomize validation |
+| `release.yml` | Tag `v*` | Build + push 7 Docker images to GHCR | ✅ Aquasecurity Trivy container CVE scanner (`CRITICAL,HIGH`) |
 
-### 9.2 CI/CD Gaps
+### 9.2 CI/CD Gaps — ✅ Resolved (Phase 4)
 
-| Gap | Priority | Recommendation |
-|:---|:---:|:---|
-| **No Go linting** | 🟠 High | Add `golangci-lint run ./...` to `ci-go.yml` (already in Makefile) |
-| **No container image scanning** | 🟠 High | Add Trivy/Grype step to `release.yml` |
-| **No E2E tests** | 🟡 Medium | Add Docker Compose integration test suite |
-| **No deployment pipeline** | 🟡 Medium | Add ArgoCD/Flux GitOps or direct K8s deploy step |
-| **No SAST/DAST** | 🟡 Medium | Add CodeQL or Semgrep for static security scanning |
-| **No dependency scanning** | 🟡 Medium | Add `govulncheck` for Go and `npm audit` for Node.js |
-| **No load testing** | ⚠️ Low | Add k6/Locust performance benchmarks |
+| Gap | Priority | Recommendation | Status |
+|:---|:---:|:---|:---:|
+| **No Go linting** | 🟠 High | Add `golangci-lint run ./...` to `ci-go.yml` | ✅ **Resolved** (`.golangci.yml` + `ci-go.yml`) |
+| **No container image scanning** | 🟠 High | Add Trivy/Grype step to `release.yml` | ✅ **Resolved** (Trivy action in `release.yml`) |
+| **No E2E tests** | 🟡 Medium | Add Docker Compose integration test suite | ✅ **Resolved** (`tests/e2e/e2e_test.go`, `npm run test:e2e`) |
+| **No deployment pipeline** | 🟡 Medium | Add ArgoCD/Flux GitOps or direct K8s deploy step | ⏳ Planned |
+| **No SAST/DAST** | 🟡 Medium | Add CodeQL or Semgrep for static security scanning | ⏳ Planned |
+| **No dependency scanning** | 🟡 Medium | Add `govulncheck` for Go and `npm audit` for Node.js | ✅ **Resolved** (`govulncheck` + `npm audit`) |
+| **No load testing** | ⚠️ Low | Add k6/Locust performance benchmarks | ⏳ Backlog |
 
 ---
 
@@ -676,8 +676,8 @@ Cross-referencing all 14 documentation files against actual source code revealed
 | H-4 | Rate limiter defined but never applied to routers | Security | ✅ **Resolved** | `traefik/dynamic/dynamic.yml` |
 | H-5 | No database migration tooling | Operations | ⏳ Pending | All services |
 | H-6 | All services use `postgres` superuser | Security | ✅ **Resolved** | `docker-compose.yml`, `scripts/init-databases.sql` |
-| H-7 | No Go linter in CI pipeline | Quality | ⏳ Pending | `.github/workflows/ci-go.yml` |
-| H-8 | No container image vulnerability scanning | Security | ⏳ Pending | `.github/workflows/release.yml` |
+| H-7 | No Go linter in CI pipeline | Quality | ✅ **Resolved** | `.golangci.yml`, `.github/workflows/ci-go.yml` |
+| H-8 | No container image vulnerability scanning | Security | ✅ **Resolved** | `.github/workflows/release.yml` (Trivy) |
 | H-9 | JWT secret has insecure default fallback | Security | ✅ **Resolved** | `docker-compose.yml` |
 | H-10 | Traefik dashboard publicly accessible | Security | ✅ **Resolved** | `traefik/traefik.yml` |
 | H-11 | No SSL/TLS configured anywhere | Security | ✅ **Resolved** | `traefik/`, `k8s/` |
@@ -689,23 +689,23 @@ Cross-referencing all 14 documentation files against actual source code revealed
 | M-1 | Event consumers lack idempotency checks | Reliability | ✅ **Resolved** | `deploy-svc`, `monitor-svc`, `shared/messaging/` |
 | M-2 | No event schema versioning | Maintainability | ✅ **Resolved** | `shared/events/` |
 | M-3 | Single AMQP channel shared for pub/sub | Reliability | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
-| M-4 | All pages `'use client'` — no SSR benefits | Performance | ⏳ Pending | `frontend/src/app/` |
+| M-4 | All pages `'use client'` — no SSR benefits | Performance | ✅ **Resolved** | `frontend/src/app/page.tsx`, `store/page.tsx` (RSC + ISR) |
 | M-5 | No distributed tracing (OpenTelemetry) | Observability | ✅ **Resolved** | `shared/telemetry/`, `shared/messaging/rabbitmq.go` |
 | M-6 | No Prometheus metrics endpoints | Observability | ✅ **Resolved** | `shared/telemetry/`, all microservices `/metrics` |
 | M-7 | No circuit breaker for inter-service calls | Resilience | ✅ **Resolved** | `shared/resilience/`, Traefik `dynamic.yml` |
 | M-8 | No pod disruption budgets in K8s | Availability | ✅ **Resolved** | `k8s/10-scaling/pdb.yaml` |
 | M-9 | No horizontal pod autoscaler | Scalability | ✅ **Resolved** | `k8s/10-scaling/hpa.yaml` |
-| M-10 | No React error boundaries | UX | ⏳ Pending | `frontend/src/` |
-| M-11 | No automatic JWT refresh/rotation | Security | ⏳ Pending | `frontend/src/contexts/` |
+| M-10 | No React error boundaries | UX | ✅ **Resolved** | `app/error.tsx`, `app/global-error.tsx`, `<ErrorBoundary />` |
+| M-11 | No automatic JWT refresh/rotation | Security | ✅ **Resolved** | `auth-svc` `/refresh` + `api.ts` silent 401 interceptor |
 | M-12 | No default-deny network policy for platform namespace | Security | ⏳ Pending | `k8s/09-network-policy.yaml` |
 
 ### ⚠️ Low (Backlog Improvements)
 
 | # | Finding | Category | File(s) |
 |:---:|:---|:---:|:---|
-| L-1 | Manager Bot has no sharding support | Scalability | `bots/manager-bot/src/` |
+| L-1 | Manager Bot has no sharding support | Scalability | `bots/manager-bot/src/sharder.ts` (✅ **Resolved**) |
 | L-2 | No load/performance testing setup | Quality | — |
-| L-3 | No E2E integration test suite | Quality | — |
+| L-3 | No E2E integration test suite | Quality | `tests/e2e/e2e_test.go` (✅ **Resolved**) |
 | L-4 | Catalog-svc has no write endpoints | Feature | `catalog-svc/` |
 | L-5 | Monitor-svc has no alerting integrations | Feature | `monitor-svc/` |
 | L-6 | Seed data mixed with schema DDL | Maintainability | `init-databases.sql` |
@@ -768,18 +768,18 @@ flowchart LR
 | Write operational runbook | 2 days | ⚠️ Low | ✅ **Done** (`docs/RUNBOOK.md`) |
 | Set up Grafana dashboards | 2 days | 🟡 Medium | ✅ **Done** (`monitoring/prometheus.yml`, `platform-overview.json`) |
 
-### Phase 4: Frontend & CI/CD Polish (Weeks 7-8) 🟡
+### Phase 4: Frontend & CI/CD Polish (Weeks 7-8) 🟡 — ✅ Completed
 
-| Task | Effort | Impact |
-|:---|:---:|:---:|
-| Convert landing/store pages to Server Components | 2 days | 🟡 Medium |
-| Add React Error Boundaries | 0.5 days | 🟡 Medium |
-| Implement JWT auto-refresh with refresh tokens | 2 days | 🟡 Medium |
-| Add `golangci-lint` to CI | 30 min | 🟠 High |
-| Add Trivy image scanning to release workflow | 1 hour | 🟠 High |
-| Add `govulncheck` + `npm audit` to CI | 1 hour | 🟡 Medium |
-| Write E2E integration test suite | 5 days | ⚠️ Low |
-| Add bot sharding support | 2 days | ⚠️ Low |
+| Task | Effort | Impact | Status |
+|:---|:---:|:---:|:---:|
+| Convert landing/store pages to Server Components | 2 days | 🟡 Medium | ✅ **Done** (`src/app/page.tsx`, `store/page.tsx` RSC + 60s ISR) |
+| Add React Error Boundaries | 0.5 days | 🟡 Medium | ✅ **Done** (`error.tsx`, `global-error.tsx`, `<ErrorBoundary />`) |
+| Implement JWT auto-refresh with refresh tokens | 2 days | 🟡 Medium | ✅ **Done** (`auth-svc` `/refresh` + `api.ts` silent 401 interceptor) |
+| Add `golangci-lint` to CI | 30 min | 🟠 High | ✅ **Done** (`.golangci.yml` + `.github/workflows/ci-go.yml`) |
+| Add Trivy image scanning to release workflow | 1 hour | 🟠 High | ✅ **Done** (`.github/workflows/release.yml`) |
+| Add `govulncheck` + `npm audit` to CI | 1 hour | 🟡 Medium | ✅ **Done** (`ci-go.yml`, `ci-frontend.yml`, `ci-manager-bot.yml`) |
+| Write E2E integration test suite | 5 days | ⚠️ Low | ✅ **Done** (`tests/e2e/e2e_test.go`, `npm run test:e2e`) |
+| Add bot sharding support | 2 days | ⚠️ Low | ✅ **Done** (`bots/manager-bot/src/sharder.ts`, `ENABLE_SHARDING`) |
 
 ---
 

@@ -133,3 +133,55 @@ Rather than establishing disparate point-to-point connections to internal servic
 - **Service Dependency Choreography**: The `manager-bot` container specifies `depends_on: traefik: condition: service_healthy`, ensuring the reverse proxy and all upstream microservices are active before the bot establishes its Discord Gateway websocket connection.
 - **Timeout & Retries**: All HTTP requests enforce timeouts to comply with Discord's 3-second interaction deadline.
 - **Graceful Degradation**: If an upstream service is temporarily cycling, the bot responds with an ephemeral Discord embed containing diagnostic status details instead of crashing.
+
+---
+
+## 5. Discord Gateway Sharding & Horizontal Scalability
+
+To support scaling beyond 2,500 Discord servers in production without memory exhaustion or gateway ratelimiting, the Manager Bot provides a dual-mode execution model governed by the `ENABLE_SHARDING` environment variable:
+
+```mermaid
+flowchart TD
+    subgraph Host ["manager-bot Container (src/index.ts)"]
+        EnvCheck{"ENABLE_SHARDING == 'true'?"}
+        Standalone["Standalone Bot (src/bot.ts)<br/>Direct Client Instance<br/>Health Server on :8085"]
+        Sharder["ShardingManager (src/sharder.ts)<br/>totalShards: 'auto'<br/>Master Health Server on :8085"]
+    end
+
+    subgraph Shards ["Spawned Worker Subprocesses"]
+        Shard0["Worker Shard #0<br/>Guilds 0..N"]
+        Shard1["Worker Shard #1<br/>Guilds N+1..2N"]
+        ShardN["Worker Shard #N..."]
+    end
+
+    EnvCheck -->|false / default| Standalone
+    EnvCheck -->|true| Sharder
+    Sharder -->|"fork and supervise"| Shard0 & Shard1 & ShardN
+    Sharder -.->|"broadcast health query"| Shard0 & Shard1 & ShardN
+```
+
+### 5.1 Operating Modes
+1. **Standalone Mode (`ENABLE_SHARDING=false`)**:
+   - Default for local development, testing, and smaller deployments (<2,500 guilds).
+   - Starts a single `Client` process via `src/bot.ts` with its own embedded HTTP health probe listening on `:8085`.
+2. **Sharded Mode (`ENABLE_SHARDING=true`)**:
+   - Production mode for large bot fleets.
+   - Starts a master supervisor via `src/sharder.ts` using Discord.js `ShardingManager(..., { totalShards: 'auto' })`.
+   - The master process supervises child worker processes and binds the `:8085` health probe.
+   - Worker shards run child instances without binding redundant HTTP ports.
+
+### 5.2 Aggregated Health Probe
+When running under `ShardingManager`, the `/health` endpoint on `:8085` aggregates health across all active child shards using `shards.broadcastEval(...)`:
+```json
+{
+  "status": "ok",
+  "service": "manager-bot",
+  "mode": "sharded",
+  "shards_spawned": 2,
+  "ready_shards": 2,
+  "guilds": 1420,
+  "timestamp": "2026-09-26T18:00:00.000Z"
+}
+```
+If any shard reports an unready gateway state or fails to respond within 2 seconds, the probe marks `status: "degraded"` or `"error"` with HTTP 503, alerting Docker/Kubernetes health poller systems.
+

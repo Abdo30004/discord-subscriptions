@@ -55,9 +55,9 @@ The CI pipeline is modularized into **6 focused workflows** that fire **only whe
 
 | Workflow File | Trigger Paths Filter | Environment | Tools | What it Verifies |
 | :--- | :--- | :--- | :--- | :--- |
-| **`ci-go.yml`** | `microservices/**`, `shared/**`, `go.work*`, `**/go.mod`, `**/go.sum` | `ubuntu-latest` | Go 1.23 | Unit tests with race detection (`go test -race ./shared/... ./microservices/...`) & builds 5 service binaries. |
-| **`ci-frontend.yml`** | `frontend/**` | `ubuntu-latest` | Node.js 20 | Runs `npm ci` and compiles Next.js 16 Turbopack production build. |
-| **`ci-manager-bot.yml`** | `bots/manager-bot/**` | `ubuntu-latest` | Node.js 20 | Runs `npm ci` and compiles TypeScript bot code into `dist/` without type errors. |
+| **`ci-go.yml`** | `microservices/**`, `shared/**`, `go.work*`, `**/go.mod`, `**/go.sum` | `ubuntu-latest` | Go 1.23, `golangci-lint` v1.61, `govulncheck` | Unit tests with race detection (`go test -race ./shared/... ./microservices/...`), static code analysis with `golangci-lint`, Go vulnerability scanning with `govulncheck`, & builds 5 service binaries. |
+| **`ci-frontend.yml`** | `frontend/**` | `ubuntu-latest` | Node.js 20, `npm audit` | Runs `npm ci`, security audit with `npm audit --audit-level=high`, and compiles Next.js 16 Turbopack production build. |
+| **`ci-manager-bot.yml`** | `bots/manager-bot/**` | `ubuntu-latest` | Node.js 20, `npm audit` | Runs `npm ci`, security audit with `npm audit --audit-level=high`, and compiles TypeScript bot code into `dist/` without type errors. |
 | **`ci-infra.yml`** | `docker-compose.yml`, `traefik/**`, `k8s/**`, `scripts/init-databases.sql` | `ubuntu-latest` | Docker & Kustomize | Runs `docker compose config --quiet` and `kubectl kustomize k8s/` syntax validation. |
 | **`ci-diagrams.yml`** | `**/*.md`, `scripts/validate-diagrams.mjs`, `package*.json` | `ubuntu-latest` | Node.js 24 | Validates all Markdown Mermaid diagrams in headless JSDOM with Mermaid v12. |
 | **`ci-changelog.yml`** | `CHANGELOG.md`, `scripts/generate-changelog.mjs`, `cliff.toml` | `ubuntu-latest` | Node.js 20 | Verifies `CHANGELOG.md` is strictly synchronized with repository commits via `npm run changelog:check`. |
@@ -78,6 +78,7 @@ When a git tag matching `v*` (e.g. `v1.0.0`, `v1.1.0`) is pushed, or when trigge
    - `ghcr.io/Abdo30004/monitor-svc`
    - `ghcr.io/Abdo30004/manager-bot`
    - `ghcr.io/Abdo30004/frontend`
+4. **Container Image Vulnerability Scanning**: Scans newly built images with `aquasecurity/trivy-action` (`severity: 'CRITICAL,HIGH'`) to catch OS-level and base image CVEs before deployment.
 
 ---
 

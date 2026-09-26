@@ -150,3 +150,38 @@ NEXT_PUBLIC_BILLING_SVC_URL=http://localhost:8082
 NEXT_PUBLIC_DEPLOY_SVC_URL=http://localhost:8083
 NEXT_PUBLIC_MONITOR_SVC_URL=http://localhost:8084
 ```
+
+---
+
+## 4. React Server Components & Incremental Static Regeneration (ISR)
+
+The platform utilizes a **Hybrid React Server Components (RSC)** pattern:
+- **Server-Side Data Hydration**: The Landing (`/`) and Store (`/store`) pages are async Server Components (`revalidate = 60`) that fetch bot catalog templates directly from `catalog-svc` (`http://catalog-svc:8081/api/v1/bots`) at build and request time.
+- **Search Engine Optimization (SEO)**: Bot templates, descriptions, and pricing tiers are rendered as pure semantic HTML, ensuring instantaneous time-to-first-byte (TTFB) and complete search crawler visibility.
+- **Modular Leaf Client Components**: Interactive UI logic (Discord login buttons, guild dropdown selectors, and checkout redirects) is isolated in `'use client'` leaf modules (`LandingHeroActions.tsx`, `StoreClient.tsx`).
+
+---
+
+## 5. Silent 401 Session Refresh & Interceptor Protocol
+
+All API calls in [`frontend/src/lib/api.ts`](../frontend/src/lib/api.ts) run through `apiFetch()`, an intelligent HTTP wrapper:
+1. **HttpOnly Cookie Ingestion**: Automatically passes `credentials: 'include'` on all network requests.
+2. **Transparent 401 Interception**: When an authenticated request fails with `HTTP 401 Unauthorized`:
+   - It acquires a single shared refresh lock (`isRefreshing`).
+   - Invokes `POST /api/v1/auth/refresh` on `auth-svc`.
+   - `auth-svc` verifies the session, refreshes Discord OAuth credentials from HashiCorp Vault if needed, sets a fresh `auth_token` HttpOnly cookie, and returns updated session tokens.
+   - Automatically replays the original failed request with the new authorization credentials without logging the user out.
+
+---
+
+## 6. Multi-Layered Error Boundaries & Failure Resilience
+
+1. **Route Segment Boundary (`src/app/error.tsx`)**:
+   - Catches unexpected rendering or runtime exceptions within App Router pages.
+   - Provides contextual error details and "Try Again" / "Return Home" recovery buttons.
+2. **Root Crash Boundary (`src/app/global-error.tsx`)**:
+   - Catches catastrophic layout or provider exceptions.
+   - Encapsulates its own `<html>` and `<body>` tags with a "Reload Platform" trigger.
+3. **Widget Boundary (`src/components/ErrorBoundary.tsx`)**:
+   - Reusable class component wrapping critical interactive widgets (Checkout wizard, Store configurator, Fleet tabs) so isolated module errors do not crash the entire parent view.
+

@@ -11,6 +11,10 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **ci**: add static analysis, vulnerability scanning, and e2e integration test suite ([f85ab25](https://github.com/Abdo30004/discord-subscriptions/commit/f85ab2538f52c88e65274f0f193cfda7f246d900))
+- **frontend**: convert landing and store to server components with error boundaries ([6ffaf66](https://github.com/Abdo30004/discord-subscriptions/commit/6ffaf66f5b1befb02cbebfc1f6e090afc7db25b3))
+- **manager-bot**: implement discord gateway sharding with master health aggregator ([c4f7d39](https://github.com/Abdo30004/discord-subscriptions/commit/c4f7d3980c7da7309188585e11f5917c17ad5d9e))
+- **auth**: add silent session refresh with vault discord token rotation ([15845ed](https://github.com/Abdo30004/discord-subscriptions/commit/15845edd5fc64ef049f65e2ea7f9a32c44e89baa))
 - **services**: wire prometheus metrics endpoint and outbound circuit breaking ([bb9e096](https://github.com/Abdo30004/discord-subscriptions/commit/bb9e0962fbfd3e01535212f627e98bfa05a6402f))
 - **shared**: add prometheus telemetry, w3c trace context, and circuit breaker ([df2cda6](https://github.com/Abdo30004/discord-subscriptions/commit/df2cda65ca5785a37e9ed5334a8d48b18b5a3a75))
 - **services**: integrate consumer deduplication and domain idempotency guards ([62f5cf7](https://github.com/Abdo30004/discord-subscriptions/commit/62f5cf713a62fbe51fbcc9eb48e0e6c01c34f31a))
