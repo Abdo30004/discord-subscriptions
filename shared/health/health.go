@@ -95,7 +95,7 @@ func (c *Checker) Check(ctx context.Context) (HealthResponse, bool) {
 	allHealthy := true
 
 	for name, checkFn := range checksCopy {
-		checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		checkCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		err := checkFn(checkCtx)
 		cancel()
 

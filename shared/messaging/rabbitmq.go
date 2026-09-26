@@ -63,6 +63,7 @@ func NewRabbitMQClient(url string, logger *slog.Logger) (*RabbitMQClient, error)
 	if err := client.connect(); err != nil {
 		// Log warning and begin background reconnect attempts so service startup is non-blocking
 		logger.Warn("initial rabbitmq connection failed, entering reconnection loop", slog.String("error", err.Error()))
+		client.triggerReconnect()
 		go client.reconnectLoop()
 		return client, nil
 	}
@@ -324,6 +325,15 @@ func (r *RabbitMQClient) Subscribe(ctx context.Context, queueName, exchange, rou
 	}
 	r.subscriptions = append(r.subscriptions, sub)
 	r.mu.Unlock()
+
+	if !r.IsConnected() {
+		r.logger.Info("subscription registered; will attach when rabbitmq connection is established",
+			slog.String("queue", queueName),
+			slog.String("exchange", exchange),
+			slog.String("routing_key", routingKey),
+		)
+		return nil
+	}
 
 	return r.bindAndConsume(ctx, sub)
 }
