@@ -18,8 +18,7 @@ erDiagram
         BOOLEAN is_admin
         TIMESTAMPTZ admin_promoted_at
         VARCHAR_64 admin_promoted_by
-        TEXT access_token
-        TEXT refresh_token
+        BOOLEAN has_oauth_token
         TIMESTAMPTZ token_expires_at
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
@@ -160,7 +159,7 @@ erDiagram
 ### 2.1 `auth_db`
 - **Owner**: `auth-svc` (Port 8080)
 - **Tables**:
-  - `users`: Stores Discord user accounts, OAuth access tokens, refresh tokens, and administrator appointments (`is_admin`, `admin_promoted_at`, `admin_promoted_by`).
+  - `users`: Stores Discord user accounts, OAuth token presence flag (`has_oauth_token`), token expiration timestamp, and administrator appointments (`is_admin`, `admin_promoted_at`, `admin_promoted_by`). Discord OAuth access and refresh tokens are securely encrypted and stored in HashiCorp Vault (`secret/data/users/{userId}`) rather than plaintext database columns.
 - **Indexes**:
   - `idx_users_username` on `users(username)`
   - `idx_users_is_admin` on `users(is_admin) WHERE is_admin = true`

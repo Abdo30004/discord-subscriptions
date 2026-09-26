@@ -11,6 +11,11 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **frontend**: integrate httponly cookie sessions and pass auth tokens to admin APIs ([957f10d](https://github.com/Abdo30004/discord-subscriptions/commit/957f10d345ef71b358c3d5ae1a14908f0f59f889))
+- **deploy**: enforce admin authentication on token pool endpoints ([0942fa4](https://github.com/Abdo30004/discord-subscriptions/commit/0942fa479f1b07ba89dc39b8dd06297fe9389d07))
+- **billing**: protect admin grant, promo, and voucher endpoints with jwt validator ([9710efd](https://github.com/Abdo30004/discord-subscriptions/commit/9710efd58b1a5955a0b30f848fbb8f2efd8be953))
+- **auth**: vault-backed discord oauth tokens with httponly session cookie ([8090e3c](https://github.com/Abdo30004/discord-subscriptions/commit/8090e3cc27af5845a320767a4dfac210f32b8a9e))
+- **shared**: migrate oauth tokens to vault and add jwt claims validator ([daa0776](https://github.com/Abdo30004/discord-subscriptions/commit/daa07761c2d2e3c95392fe1bb57212ae73aa3c8d))
 - **deploy**: inject SUPER_ADMIN_DISCORD_IDS into auth-svc docker compose environment ([f3e5479](https://github.com/Abdo30004/discord-subscriptions/commit/f3e5479cdc151f27456da86db6640d3b17a892e7))
 - **frontend**: eradicate devLogin and add staff management panel to admin dashboard ([a9d6535](https://github.com/Abdo30004/discord-subscriptions/commit/a9d6535e1b47e7ddefbcbf74ccc85219851e4e7b))
 - **auth**: implement super admin hierarchy and admin promotion endpoints ([eaecf51](https://github.com/Abdo30004/discord-subscriptions/commit/eaecf51706b0d87c7f631d7daa4c58b2007eaa48))
@@ -44,6 +49,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🏗️ Infrastructure & Persistence
 
+- **infra**: restrict traefik cors, secure dashboard, mount vault pvc, and template k8s secrets ([d7b365a](https://github.com/Abdo30004/discord-subscriptions/commit/d7b365acc7123e976e4a1024cee3617c47a6efc5))
 - **infra**: integrate manager-bot into Traefik network mesh in Docker Compose ([aa79b2f](https://github.com/Abdo30004/discord-subscriptions/commit/aa79b2f112880ece49622bfdddcbf81f28caa332))
 - **infra**: initialize repository scaffolding, multi-workspace go tooling, and database seeds ([a700cce](https://github.com/Abdo30004/discord-subscriptions/commit/a700cce8b14faf23cb01fdddfc3bd93766fcd24c))
 

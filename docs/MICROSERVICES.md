@@ -82,6 +82,14 @@ Exchanges the authorization code for a Discord user profile, updates `auth_db.us
   }
 }
 ```
+*Note: Also sets an `HttpOnly`, `SameSite=Lax` cookie `auth_token` on the response for browser sessions.*
+
+#### `POST /api/v1/auth/logout`
+Logs out the user and clears the `auth_token` `HttpOnly` cookie.
+- **Response**: `200 OK`
+```json
+{ "message": "Logged out successfully" }
+```
 
 #### `GET /api/v1/auth/me`
 Retrieves current user identity from the Bearer token.
@@ -286,6 +294,24 @@ Redeems a gift code for a free subscription period.
 ```
 - **Response**: `200 OK` (Returns the generated active `Subscription` entity).
 
+#### `POST /api/v1/billing/admin/grant`
+Grants an administrator subscription without requiring payment.
+- **Headers**: `Authorization: Bearer <jwt>` (Admin or Super Admin only)
+- **Request Body**: `{ "user_id": "...", "guild_id": "...", "bot_type": "music", "plan_id": "plan-music-pro", "instance_label": "Mod Bot", "duration_days": 30, "is_dedicated": true, "is_zero_setup": true }`
+- **Response**: `200 OK`
+
+#### `POST /api/v1/billing/admin/promo`
+Creates a new promotional discount code.
+- **Headers**: `Authorization: Bearer <jwt>` (Admin or Super Admin only)
+- **Request Body**: `{ "code": "SUMMER50", "discount_type": "percentage", "discount_value": 50, "max_uses": 100 }`
+- **Response**: `201 Created`
+
+#### `POST /api/v1/billing/admin/voucher`
+Generates a new gift voucher redeemable by server owners.
+- **Headers**: `Authorization: Bearer <jwt>` (Admin or Super Admin only)
+- **Request Body**: `{ "plan_id": "plan-music-pro", "bot_type": "music", "duration_days": 30, "is_dedicated": true }`
+- **Response**: `201 Created`
+
 ---
 
 ## 5. deploy-svc (Port 8083)
@@ -345,26 +371,32 @@ Updates a bot's Discord username and avatar in a running deployment.
 }
 ```
 
-#### `GET /api/v1/token-pool/stats`
+#### `GET /api/v1/admin/token-pool`
 Admin overview of available vs reserved pre-warmed tokens.
+- **Headers**: `Authorization: Bearer <jwt>` (Admin or Super Admin only)
 - **Response**: `200 OK`
 ```json
 {
-  "total_tokens": 10,
-  "available_tokens": 4,
-  "assigned_tokens": 6,
-  "quarantined_tokens": 0
+  "stats": {
+    "music": { "available": 4, "assigned": 6 },
+    "moderation": { "available": 2, "assigned": 1 }
+  }
 }
 ```
 
-#### `POST /api/v1/token-pool/tokens`
-Admin endpoint to ingest pre-created bot tokens into the turnkey pool.
+#### `POST /api/v1/admin/token-pool`
+Admin endpoint to ingest pre-created bot tokens into the turnkey pool. Tokens are securely written to HashiCorp Vault.
+- **Headers**: `Authorization: Bearer <jwt>` (Admin or Super Admin only)
 - **Request Body**:
 ```json
 {
   "bot_type": "music",
-  "client_id": "131234567890123499",
-  "discord_token": "MTMxMjM0NTY3ODkwMTIzNDk5.Gz9abc.super_secret_discord_bot_token"
+  "tokens": [
+    {
+      "token": "MTMxMjM0NTY3ODkwMTIzNDk5.Gz9abc.super_secret_discord_bot_token",
+      "client_id": "131234567890123499"
+    }
+  ]
 }
 ```
 - **Response**: `201 Created`
