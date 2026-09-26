@@ -11,6 +11,8 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **frontend**: fully connect application to backend apis and remove mock data ([28a0adc](https://github.com/Abdo30004/discord-subscriptions/commit/28a0adc7c5f53758b7c27567fcf67017751ecb5d))
+- **catalog**: register /api/v1/bots route aliases alongside /api/v1/catalog/bots ([17cec58](https://github.com/Abdo30004/discord-subscriptions/commit/17cec58d7355edb0633b445c8e707c1df34bed88))
 - **changelog**: add automated conventional commits changelog generator and tooling ([aa06c7d](https://github.com/Abdo30004/discord-subscriptions/commit/aa06c7de10c6ef0a4e70dc614727cb9bd260b80b))
 - **ci**: implement comprehensive github actions ci pipeline and release cd workflow ([4ac6c77](https://github.com/Abdo30004/discord-subscriptions/commit/4ac6c77ea81803eef9877fca9773c56947589ee3))
 - **frontend**: build next.js 16 turbopack dashboard, subscription store, checkout, and admin panel ([bb0693b](https://github.com/Abdo30004/discord-subscriptions/commit/bb0693b5355e437919ccac1b21c4962c96919275))
@@ -42,6 +44,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
+- **frontend**: update architecture and route documentation for real api and auth flow ([892a402](https://github.com/Abdo30004/discord-subscriptions/commit/892a402c6aac8574356ca1c5c26fe87d90c034f5))
 - specify zero host port exports and direct traefik web access ([82612d6](https://github.com/Abdo30004/discord-subscriptions/commit/82612d63888f0c492b420361724d1866a70175b8))
 - document ci/cd pipelines, automated changelog system, and agent rules ([52d54f3](https://github.com/Abdo30004/discord-subscriptions/commit/52d54f386e6bbc2b264fc1990641c3012cfd119a))
 - provide comprehensive architectural specifications, runbooks, and agent rules ([5a19147](https://github.com/Abdo30004/discord-subscriptions/commit/5a19147acfd9ca24131b693f18ce341431c423a9))
