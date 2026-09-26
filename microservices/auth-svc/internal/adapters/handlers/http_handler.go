@@ -48,6 +48,7 @@ func (h *HTTPHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/v1/auth/discord/url", h.GetOAuthURL)
 	mux.HandleFunc("POST /api/v1/auth/discord/callback", h.Callback)
+	mux.HandleFunc("POST /api/v1/auth/refresh", h.RefreshToken)
 	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
 	mux.HandleFunc("GET /api/v1/auth/me", h.GetProfile)
 	mux.HandleFunc("GET /api/v1/auth/guilds", h.GetGuilds)
@@ -92,6 +93,35 @@ func (h *HTTPHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error("callback authentication failed", slog.String("error", err.Error()))
 		h.respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    session.Token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7,
+	})
+
+	h.respondJSON(w, http.StatusOK, map[string]any{
+		"data": session,
+	})
+}
+
+func (h *HTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	token := h.extractBearerToken(r)
+	if token == "" {
+		h.respondError(w, http.StatusUnauthorized, "Missing authorization token or cookie")
+		return
+	}
+
+	session, err := h.service.RefreshSession(r.Context(), token)
+	if err != nil {
+		h.logger.Warn("session refresh failed", slog.String("error", err.Error()))
+		h.respondError(w, http.StatusUnauthorized, "Invalid or unrefreshable session")
 		return
 	}
 

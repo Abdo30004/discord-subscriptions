@@ -140,6 +140,64 @@ func (s *AuthServiceImpl) AuthenticateWithCode(ctx context.Context, code, redire
 	}, nil
 }
 
+// RefreshSession validates an existing (or recently expired) JWT and issues a refreshed session,
+// transparently refreshing Discord OAuth tokens via HashiCorp Vault if needed.
+func (s *AuthServiceImpl) RefreshSession(ctx context.Context, currentToken string) (*domain.AuthSession, error) {
+	if currentToken == "" {
+		return nil, sharedErrors.ErrUnauthorized
+	}
+
+	// Allow tokens expired within the past 7 days to be refreshed
+	claims, err := s.tokenMgr.ValidateTokenAllowExpired(currentToken, 7*24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session token: %w", err)
+	}
+
+	user, err := s.userRepo.GetByID(ctx, claims.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	// Check if Discord tokens in Vault need refreshing
+	if s.vaultClient != nil {
+		_, refreshToken, expiresAt, err := s.vaultClient.GetUserTokens(ctx, user.ID)
+		if err == nil && refreshToken != "" {
+			// If Discord token is expiring soon (within 30 mins) or already expired, refresh it
+			if time.Now().UTC().Add(30 * time.Minute).After(expiresAt) {
+				newAccess, newRefresh, expiresIn, refreshErr := s.discord.RefreshToken(ctx, refreshToken)
+				if refreshErr == nil {
+					newExp := time.Now().UTC().Add(time.Duration(expiresIn) * time.Second)
+					_ = s.vaultClient.PutUserTokens(ctx, user.ID, newAccess, newRefresh, newExp)
+					user.HasOAuthToken = true
+				} else {
+					s.logger.Warn("discord oauth refresh failed during session refresh",
+						slog.String("user_id", user.ID),
+						slog.String("error", refreshErr.Error()),
+					)
+				}
+			}
+		}
+	}
+
+	s.hydrateUserRoles(user)
+
+	newToken, expiresAt, err := s.tokenMgr.GenerateToken(*user)
+	if err != nil {
+		return nil, fmt.Errorf("failed generating refreshed token: %w", err)
+	}
+
+	s.logger.Info("user session refreshed successfully",
+		slog.String("user_id", user.ID),
+		slog.String("username", user.Username),
+	)
+
+	return &domain.AuthSession{
+		Token:     newToken,
+		ExpiresAt: expiresAt,
+		User:      *user,
+	}, nil
+}
+
 // GetUserSession validates a JWT and retrieves the user record.
 func (s *AuthServiceImpl) GetUserSession(ctx context.Context, token string) (*domain.User, error) {
 	claims, err := s.tokenMgr.ValidateToken(token)

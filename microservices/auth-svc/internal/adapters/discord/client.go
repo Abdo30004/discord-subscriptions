@@ -99,6 +99,48 @@ func (c *Client) ExchangeCode(ctx context.Context, code, redirectURI string) (st
 	return tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.ExpiresIn, nil
 }
 
+// RefreshToken exchanges a Discord refresh token for a fresh access token and refresh token.
+func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (string, string, int, error) {
+	if c.isMockMode {
+		return "mock_discord_access_token_refreshed", "mock_discord_refresh_token_refreshed", 604800, nil
+	}
+
+	data := url.Values{}
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
+	data.Set("grant_type", "refresh_token")
+	data.Set("refresh_token", refreshToken)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://discord.com/api/v10/oauth2/token", strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", "", 0, fmt.Errorf("failed to create oauth refresh request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", "", 0, fmt.Errorf("discord token refresh error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", "", 0, fmt.Errorf("discord oauth refresh failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var tokenResp struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int    `json:"expires_in"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return "", "", 0, fmt.Errorf("failed to decode discord refresh response: %w", err)
+	}
+
+	return tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.ExpiresIn, nil
+}
+
 // GetUserProfile fetches the authenticated user's Discord profile.
 func (c *Client) GetUserProfile(ctx context.Context, accessToken string) (*domain.User, error) {
 	if c.isMockMode {

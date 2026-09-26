@@ -78,6 +78,10 @@ func (m *mockDiscordClient) GetUserGuilds(ctx context.Context, accessToken strin
 	return m.guilds, nil
 }
 
+func (m *mockDiscordClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, int, error) {
+	return "mock_access_token_refreshed", "mock_refresh_token_refreshed", 3600, nil
+}
+
 type mockTokenMgr struct{}
 
 func (m *mockTokenMgr) GenerateToken(user domain.User) (string, time.Time, error) {
@@ -85,6 +89,13 @@ func (m *mockTokenMgr) GenerateToken(user domain.User) (string, time.Time, error
 }
 
 func (m *mockTokenMgr) ValidateToken(tokenString string) (*domain.UserClaims, error) {
+	return &domain.UserClaims{
+		UserID:   "discord-12345",
+		Username: "AntigravityUser",
+	}, nil
+}
+
+func (m *mockTokenMgr) ValidateTokenAllowExpired(tokenString string, maxExpiredAge time.Duration) (*domain.UserClaims, error) {
 	return &domain.UserClaims{
 		UserID:   "discord-12345",
 		Username: "AntigravityUser",
@@ -252,3 +263,31 @@ func TestAuthService_SuperAdminAndPromoteFlow(t *testing.T) {
 		t.Fatalf("expected error when trying to revoke super admin")
 	}
 }
+
+func TestAuthService_RefreshSession(t *testing.T) {
+	repo := &mockUserRepo{
+		users: map[string]*domain.User{
+			"discord-12345": {
+				ID:       "discord-12345",
+				Username: "AntigravityUser",
+			},
+		},
+	}
+	discordMock := &mockDiscordClient{}
+	tokenMock := &mockTokenMgr{}
+	vaultMock := &mockVaultClient{}
+
+	svc := services.NewAuthService(repo, discordMock, tokenMock, vaultMock, nil, nil)
+
+	session, err := svc.RefreshSession(context.Background(), "existing.jwt.token")
+	if err != nil {
+		t.Fatalf("expected successful refresh, got error: %v", err)
+	}
+	if session.Token == "" {
+		t.Fatalf("expected non-empty token")
+	}
+	if session.User.ID != "discord-12345" {
+		t.Fatalf("expected user id discord-12345, got %s", session.User.ID)
+	}
+}
+

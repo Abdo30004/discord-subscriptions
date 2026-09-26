@@ -20,6 +20,7 @@ type UserRepository interface {
 type DiscordClient interface {
 	GetOAuthURL(redirectURI, state string) string
 	ExchangeCode(ctx context.Context, code, redirectURI string) (accessToken, refreshToken string, expiresIn int, err error)
+	RefreshToken(ctx context.Context, refreshToken string) (accessToken, newRefreshToken string, expiresIn int, err error)
 	GetUserProfile(ctx context.Context, accessToken string) (*domain.User, error)
 	GetUserGuilds(ctx context.Context, accessToken string) ([]domain.Guild, error)
 }
@@ -28,12 +29,14 @@ type DiscordClient interface {
 type TokenManager interface {
 	GenerateToken(user domain.User) (token string, expiresAt time.Time, err error)
 	ValidateToken(tokenString string) (*domain.UserClaims, error)
+	ValidateTokenAllowExpired(tokenString string, maxExpiredAge time.Duration) (*domain.UserClaims, error)
 }
 
 // AuthService defines high-level authentication use cases.
 type AuthService interface {
 	GetOAuthURL(redirectURI string) string
 	AuthenticateWithCode(ctx context.Context, code, redirectURI string) (*domain.AuthSession, error)
+	RefreshSession(ctx context.Context, currentToken string) (*domain.AuthSession, error)
 	GetUserSession(ctx context.Context, token string) (*domain.User, error)
 	GetUserManageableGuilds(ctx context.Context, userID string) ([]domain.Guild, error)
 	ListAdmins(ctx context.Context, requestingUserID string) ([]domain.User, error)

@@ -94,3 +94,39 @@ func (m *Manager) ValidateToken(tokenString string) (*domain.UserClaims, error) 
 		IsSuperAdmin: claims.IsSuperAdmin,
 	}, nil
 }
+
+// ValidateTokenAllowExpired parses and verifies a JWT signature, allowing tokens expired within maxExpiredAge.
+func (m *Manager) ValidateTokenAllowExpired(tokenString string, maxExpiredAge time.Duration) (*domain.UserClaims, error) {
+	claims := &JWTClaims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return m.secretKey, nil
+	}, jwt.WithoutClaimsValidation())
+
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+
+	if claims.Issuer != "discord-subscriptions-auth" || claims.UserID == "" {
+		return nil, ErrInvalidToken
+	}
+
+	if claims.ExpiresAt != nil {
+		expiredSince := time.Since(claims.ExpiresAt.Time)
+		if expiredSince > maxExpiredAge {
+			return nil, ErrInvalidToken
+		}
+	}
+
+	return &domain.UserClaims{
+		UserID:       claims.UserID,
+		Username:     claims.Username,
+		Avatar:       claims.Avatar,
+		GlobalName:   claims.GlobalName,
+		IsAdmin:      claims.IsAdmin,
+		IsSuperAdmin: claims.IsSuperAdmin,
+	}, nil
+}
+
