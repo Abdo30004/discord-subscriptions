@@ -45,6 +45,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🐛 Bug Fixes & Resilience
 
+- **shared**: correct empty conditional branch in rabbitmq test for staticcheck ([5a88ab6](https://github.com/Abdo30004/discord-subscriptions/commit/5a88ab6383f8f32c0f8c07272e32b9d668699272))
 - **bot,monitor**: handle standby sharding and guard nil database queries ([7d4048e](https://github.com/Abdo30004/discord-subscriptions/commit/7d4048e09b306ba4cef4d2f4861af1e1204b92ae))
 - **docker**: verify rabbitmq port connectivity in healthcheck ([0967118](https://github.com/Abdo30004/discord-subscriptions/commit/0967118f084e7da92b2527da9a5958fbc85588f7))
 - **microservices**: distinguish pending and active broker connections in startup logs ([7c07414](https://github.com/Abdo30004/discord-subscriptions/commit/7c0741467d207bd4ca38cca9b1c7ac02a0d8fd95))
