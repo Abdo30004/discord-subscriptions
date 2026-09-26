@@ -19,3 +19,6 @@ resources:
   - 07-applications/manager-bot.yaml
   - 08-ingress.yaml
   - 09-network-policy.yaml
+  - 10-scaling/pdb.yaml
+  - 10-scaling/hpa.yaml
+  - 11-monitoring/servicemonitors.yaml

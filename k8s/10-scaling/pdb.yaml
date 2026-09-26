@@ -1,0 +1,69 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-svc-pdb
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: auth-svc
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auth-svc
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: catalog-svc-pdb
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: catalog-svc
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: catalog-svc
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: billing-svc-pdb
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: billing-svc
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: billing-svc
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: deploy-svc-pdb
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: deploy-svc
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: deploy-svc
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: monitor-svc-pdb
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: monitor-svc
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: monitor-svc
