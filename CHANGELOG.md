@@ -11,6 +11,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **frontend**: enforce conditional navigation and strict route authentication guards ([f698d5d](https://github.com/Abdo30004/discord-subscriptions/commit/f698d5d9236c95ef7ce22ddc00caaf896e0f9421))
 - **frontend**: fully connect application to backend apis and remove mock data ([28a0adc](https://github.com/Abdo30004/discord-subscriptions/commit/28a0adc7c5f53758b7c27567fcf67017751ecb5d))
 - **catalog**: register /api/v1/bots route aliases alongside /api/v1/catalog/bots ([17cec58](https://github.com/Abdo30004/discord-subscriptions/commit/17cec58d7355edb0633b445c8e707c1df34bed88))
 - **changelog**: add automated conventional commits changelog generator and tooling ([aa06c7d](https://github.com/Abdo30004/discord-subscriptions/commit/aa06c7de10c6ef0a4e70dc614727cb9bd260b80b))

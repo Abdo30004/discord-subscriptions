@@ -86,6 +86,7 @@ flowchart TD
 
 ### 2.4 Server Fleet Dashboard (`src/app/dashboard/page.tsx`)
 - **URL**: `/dashboard`
+- **Access Guard**: Protected route. Unauthenticated visitors are redirected to `/?auth=required`. Hidden from navigation when logged out.
 - **Features**:
   - **Multi-Bot Fleet Switcher**: Horizontal tab bar allowing the server owner to switch between multiple bots deployed in the guild
   - **Real-Time Health Status**: Live ping (ms), uptime percentage, and container memory usage fetched from `monitor-svc`
@@ -109,11 +110,24 @@ flowchart TD
 
 ### 2.5 Admin Control Panel (`src/app/admin/page.tsx`)
 - **URL**: `/admin`
+- **Access Guard**: Strictly restricted route (`user.is_admin`). Non-admin or unauthenticated visitors are redirected to `/?auth=admin_required`. Hidden from navigation unless authenticated as an administrator.
 - **Features**:
   - **Token Pool Gauges**: Visual charts displaying available, assigned, and quarantined pre-warmed tokens
   - **Token Ingestion Form**: Secure interface for administrators to submit newly created Discord bot credentials into HashiCorp Vault
   - **Voucher Generator**: Admin tool to generate 30-day, 60-day, or lifetime gift cards
   - **Global Subscriptions Table**: Searchable ledger of all active server licenses
+
+---
+
+### 2.6 Navigation Visibility & Route Guard Summary
+
+| Route | Path | Unauthenticated Visitor | Authenticated User | Authenticated Admin |
+| :--- | :--- | :--- | :--- | :--- |
+| **Overview** | `/` | Visible in Navbar, public access | Visible in Navbar, public access | Visible in Navbar, public access |
+| **Bot Catalog** | `/store` | Visible in Navbar, public access | Visible in Navbar, public access | Visible in Navbar, public access |
+| **Checkout** | `/checkout` | Redirects to login prompt | Interactive checkout & server selector | Interactive checkout & server selector |
+| **My Dashboard** | `/dashboard` | **Hidden in Navbar**, redirects `/?auth=required` | Visible in Navbar, full fleet access | Visible in Navbar, full fleet access |
+| **Admin Hub** | `/admin` | **Hidden in Navbar**, redirects `/?auth=admin_required` | **Hidden in Navbar**, redirects `/?auth=admin_required` | Visible in Navbar, full admin access |
 
 ---
 
