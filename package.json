@@ -28,8 +28,8 @@
     "nextjs",
     "kubernetes"
   ],
-  "author": "Abdo30004",
-  "license": "UNLICENSED",
+  "author": "Yahiaoui Abderrahmane",
+  "license": "MIT",
   "devDependencies": {
     "jsdom": "^30.1.1",
     "mermaid": "^12.0.0"
