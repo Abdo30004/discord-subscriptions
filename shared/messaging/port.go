@@ -23,5 +23,7 @@ type Subscriber interface {
 type Client interface {
 	Publisher
 	Subscriber
+	IsConnected() bool
 	Close() error
 }
+

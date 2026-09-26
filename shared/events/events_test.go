@@ -33,6 +33,10 @@ func TestSubscriptionActivatedEvent(t *testing.T) {
 		t.Fatalf("expected subscription ID %s, got %s", subID, event.SubscriptionID)
 	}
 
+	if event.GetSchemaVersion() != "1.0" {
+		t.Fatalf("expected schema version 1.0, got %s", event.GetSchemaVersion())
+	}
+
 	if !event.IsDedicated {
 		t.Fatal("expected isDedicated to be true")
 	}
