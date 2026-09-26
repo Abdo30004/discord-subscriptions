@@ -74,6 +74,7 @@ services:
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
       JWT_SECRET: ${JWT_SECRET:-super-secret-development-jwt-key-replace-in-production}
+      SUPER_ADMIN_DISCORD_IDS: ${SUPER_ADMIN_DISCORD_IDS:-}
       ENV: development
       LOG_LEVEL: debug
     healthcheck:
