@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -13,10 +15,31 @@ import {
   Activity,
   Layers,
   Lock,
+  Loader2,
 } from 'lucide-react';
-import { MOCK_BOTS } from '@/lib/api';
+import { getCatalogBots } from '@/lib/api';
+import { BotTemplate } from '@/lib/types';
 
 export default function HomePage() {
+  const [bots, setBots] = useState<BotTemplate[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCatalogBots()
+      .then((data) => {
+        setBots(data);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error('Failed to load catalog:', err);
+        setError('Unable to load live catalog from catalog-svc. Ensure the service is running.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <div className="space-y-24 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       {/* Hero Section */}
@@ -99,141 +122,148 @@ export default function HomePage() {
       <section className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Available Bot Templates</h2>
-            <p className="text-sm text-slate-400 mt-1">High-performance production templates tested and audited for maximum uptime.</p>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Available Bot Templates</h2>
+            <p className="text-slate-400 text-sm mt-1">
+              Live catalog fetched directly from the clean-architecture Catalog Microservice.
+            </p>
           </div>
-          <Link href="/store" className="text-sm font-medium text-blurple hover:underline flex items-center gap-1">
-            View all pricing tiers <ArrowRight className="w-3.5 h-3.5" />
+          <Link href="/store" className="text-sm font-semibold text-blurple hover:underline flex items-center gap-1">
+            Browse All Plans <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {MOCK_BOTS.map((bot) => {
-            const isMusic = bot.category === 'music';
-            const isMod = bot.category === 'moderation';
-            return (
-              <div
-                key={bot.id}
-                className="glass-card rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center text-white ${
-                        isMusic
-                          ? 'bg-gradient-to-tr from-purple-600 to-indigo-600'
-                          : isMod
-                          ? 'bg-gradient-to-tr from-blue-600 to-cyan-600'
-                          : 'bg-gradient-to-tr from-emerald-600 to-teal-600'
-                      }`}
-                    >
-                      {isMusic ? (
-                        <Music className="w-6 h-6" />
-                      ) : isMod ? (
-                        <Shield className="w-6 h-6" />
-                      ) : (
-                        <Gamepad2 className="w-6 h-6" />
-                      )}
+        {loading ? (
+          <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-blurple" />
+            <p className="text-sm">Connecting to catalog-svc and loading templates...</p>
+          </div>
+        ) : error ? (
+          <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm text-center">
+            {error}
+          </div>
+        ) : bots.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 text-sm">
+            No bot templates found in the catalog database.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {bots.map((bot) => {
+              const isMusic = bot.category === 'music';
+              const isMod = bot.category === 'moderation';
+              const isGame = bot.category === 'game';
+
+              const Icon = isMusic ? Music : isMod ? Shield : isGame ? Gamepad2 : Cpu;
+              const colorClass = isMusic ? 'text-cyan-400' : isMod ? 'text-amber-400' : 'text-purple-400';
+              const bgClass = isMusic ? 'bg-cyan-500/10' : isMod ? 'bg-amber-500/10' : 'bg-purple-500/10';
+
+              const plans = bot.plans || [];
+              const proPlan = plans.find((p) => p.is_dedicated) || plans[0];
+              const priceDisplay = proPlan
+                ? proPlan.price_cents === 0
+                  ? 'Free'
+                  : `$${(proPlan.price_cents / 100).toFixed(2)}/mo`
+                : 'Custom';
+
+              return (
+                <div
+                  key={bot.id}
+                  className="rounded-2xl bg-card border border-card-border p-6 flex flex-col justify-between hover:border-slate-700 transition-all group"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className={`p-3 rounded-xl ${bgClass} ${colorClass}`}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 uppercase">
+                        {bot.category}
+                      </span>
                     </div>
-                    <span className="text-xs uppercase font-mono px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
-                      {bot.category}
-                    </span>
-                  </div>
 
-                  <div>
-                    <h3 className="text-xl font-bold text-white group-hover:text-blurple transition-colors">
-                      {bot.name}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-2 leading-relaxed">{bot.description}</p>
-                  </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white group-hover:text-blurple transition-colors">
+                        {bot.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-3 leading-relaxed">
+                        {bot.description}
+                      </p>
+                    </div>
 
-                  {bot.plans && bot.plans[0] && (
-                    <div className="pt-2 border-t border-slate-800/80 space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Included Features</p>
-                      <ul className="space-y-1.5 text-xs text-slate-300">
-                        {bot.plans[bot.plans.length - 1].features.slice(0, 3).map((f, idx) => (
-                          <li key={idx} className="flex items-center gap-2">
+                    <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                      <div className="text-xs text-slate-300 font-medium">Included Features:</div>
+                      <ul className="space-y-1.5">
+                        {proPlan?.features?.slice(0, 3).map((f, i) => (
+                          <li key={i} className="text-xs text-slate-400 flex items-center gap-2">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                             <span>{f}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                  )}
-                </div>
-
-                <div className="pt-6 mt-6 border-t border-slate-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-slate-400">Starting at</span>
-                    <p className="text-lg font-bold text-white">
-                      ${(bot.plans?.[1]?.price_cents || bot.plans?.[0]?.price_cents || 799) / 100}
-                      <span className="text-xs font-normal text-slate-400">/mo</span>
-                    </p>
                   </div>
-                  <Link
-                    href={`/store?bot=${bot.id}`}
-                    className="px-4 py-2 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                  >
-                    Select Plan <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+
+                  <div className="pt-6 mt-6 border-t border-slate-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-slate-400 block font-medium">Starting from</span>
+                      <span className="text-lg font-extrabold text-white">{priceDisplay}</span>
+                    </div>
+
+                    <Link
+                      href={`/store?bot=${bot.id}`}
+                      className="px-4 py-2 rounded-xl bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-blurple/20"
+                    >
+                      Configure <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Architecture Deep Dive Interactive Section */}
-      <section className="p-8 rounded-3xl bg-card border border-card-border space-y-8">
-        <div className="text-center max-w-3xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-xs font-mono text-slate-300">
-            <Layers className="w-3.5 h-3.5 text-blurple" /> Event-Driven Microservices Architecture
+      {/* Fleet Tenancy Explanation */}
+      <section className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-card to-slate-900/60 border border-card-border space-y-8">
+        <div className="max-w-3xl space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+            <Layers className="w-3.5 h-3.5" /> Multi-Subscription Fleet Architecture
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Built for Scale and Reliability</h2>
-          <p className="text-sm text-slate-400">
-            Every subscription event flows through RabbitMQ message brokers, HashiCorp Vault secrets, and Kubernetes pods.
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">
+            Run Multiple Bots & Multiple Instances in a Single Discord Guild
+          </h2>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Need a music bot for your Main Stage and another for your VIP Lounge? Want an Aegis anti-raid shield running concurrently? Our orchestrator supports multiple active subscriptions and distinct container pods per guild with zero naming collisions.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-blurple">auth-svc</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">:8080</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+            <div className="w-8 h-8 rounded-lg bg-blurple/20 text-blurple flex items-center justify-center font-bold text-sm">
+              1
             </div>
-            <p className="text-xs text-slate-400">Discord OAuth2, JWT issuance & Admin permission bitmask verification.</p>
+            <h4 className="text-sm font-bold text-white">Instance Labeling</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Tag deployments with custom labels like <code>"Lobby DJ"</code> or <code>"VIP Music"</code> for seamless Discord command routing.
+            </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-blurple">catalog-svc</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">:8081</span>
+          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+            <div className="w-8 h-8 rounded-lg bg-blurple/20 text-blurple flex items-center justify-center font-bold text-sm">
+              2
             </div>
-            <p className="text-xs text-slate-400">Bot templates, dedicated container image tags & subscription plan tiers.</p>
+            <h4 className="text-sm font-bold text-white">Discord Interactive Menus</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              When issuing <code>/status</code>, <code>/restart</code>, or <code>/bot name</code>, the Manager Bot provides interactive dropdowns to disambiguate bots.
+            </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-blurple">billing-svc</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">:8082</span>
+          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+            <div className="w-8 h-8 rounded-lg bg-blurple/20 text-blurple flex items-center justify-center font-bold text-sm">
+              3
             </div>
-            <p className="text-xs text-slate-400">PayPal subscriptions, promo codes, gift card vouchers & admin grants.</p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-blurple">deploy-svc</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">:8083</span>
-            </div>
-            <p className="text-xs text-slate-400">K8s client-go orchestration, pre-warmed token pool & Vault injection.</p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-blurple">monitor-svc</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">:8084</span>
-            </div>
-            <p className="text-xs text-slate-400">Active health check pinger, WebSocket telemetry & failover notifications.</p>
+            <h4 className="text-sm font-bold text-white">Tabbed Fleet Dashboard</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Inspect real-time health telemetry, latency, and memory consumption for every single instance running inside your community.
+            </p>
           </div>
         </div>
       </section>

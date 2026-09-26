@@ -12,19 +12,25 @@ import {
   Database,
   Layers,
   Key,
+  Loader2,
+  UserCheck,
 } from 'lucide-react';
-import { getTokenPoolStats } from '@/lib/api';
+import {
+  getTokenPoolStats,
+  addPoolTokens,
+  createPromoCode,
+  createVoucherCode,
+  adminGrantSubscription,
+} from '@/lib/api';
 import { TokenPoolStats } from '@/lib/types';
 
 export default function AdminPage() {
-  const [stats, setStats] = useState<TokenPoolStats>({
-    music: { available: 5, assigned: 2 },
-    moderation: { available: 3, assigned: 1 },
-    game: { available: 4, assigned: 0 },
-  });
-
-  const [activeTab, setActiveTab] = useState<'pool' | 'promo' | 'voucher'>('pool');
+  const [stats, setStats] = useState<TokenPoolStats>({});
+  const [activeTab, setActiveTab] = useState<'pool' | 'promo' | 'voucher' | 'grant'>('pool');
+  const [loading, setLoading] = useState(false);
+  const [fetchingStats, setFetchingStats] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Add Token State
   const [newBotType, setNewBotType] = useState('music');
@@ -43,46 +49,124 @@ export default function AdminPage() {
   const [voucherBotType, setVoucherBotType] = useState('music');
   const [voucherDays, setVoucherDays] = useState(30);
 
+  // Admin Grant State
+  const [grantUserId, setGrantUserId] = useState('');
+  const [grantGuildId, setGrantGuildId] = useState('');
+  const [grantBotType, setGrantBotType] = useState('music');
+  const [grantPlanId, setGrantPlanId] = useState('plan-music-pro');
+  const [grantDurationDays, setGrantDurationDays] = useState(30);
+
+  const fetchStats = async () => {
+    setFetchingStats(true);
+    try {
+      const res = await getTokenPoolStats();
+      setStats(res);
+    } catch (err: any) {
+      console.error('Failed to load token pool stats:', err);
+    } finally {
+      setFetchingStats(false);
+    }
+  };
+
   useEffect(() => {
-    getTokenPoolStats().then((res) => {
-      if (res && Object.keys(res).length > 0) {
-        setStats(res);
-      }
-    });
+    fetchStats();
   }, []);
 
-  const handleAddToken = (e: React.FormEvent) => {
+  const handleAddToken = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClientId || !newToken) return;
+    if (!newClientId.trim() || !newToken.trim()) return;
 
-    // Simulate adding to state
-    setStats((prev) => {
-      const copy = { ...prev };
-      if (!copy[newBotType]) copy[newBotType] = { available: 0, assigned: 0 };
-      copy[newBotType].available = (copy[newBotType].available || 0) + 1;
-      return copy;
-    });
-
-    setMessage(`Pre-warmed token for ${newBotType.toUpperCase()} added to Vault and database!`);
-    setNewClientId('');
-    setNewToken('');
-    setTimeout(() => setMessage(null), 4000);
+    setLoading(true);
+    setError(null);
+    try {
+      await addPoolTokens(newBotType, [
+        {
+          token: newToken.trim(),
+          client_id: newClientId.trim(),
+        },
+      ]);
+      setMessage(`Pre-warmed token for ${newBotType.toUpperCase()} safely stored in HashiCorp Vault!`);
+      setNewClientId('');
+      setNewToken('');
+      await fetchStats();
+      setTimeout(() => setMessage(null), 4000);
+    } catch (err: any) {
+      setError(err.message || 'Failed adding token to pool');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreatePromo = (e: React.FormEvent) => {
+  const handleCreatePromo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!promoCode) return;
-    setMessage(`Promo code "${promoCode.toUpperCase()}" created successfully!`);
-    setPromoCode('');
-    setTimeout(() => setMessage(null), 4000);
+    if (!promoCode.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      await createPromoCode({
+        code: promoCode.trim().toUpperCase(),
+        discount_type: promoDiscountType,
+        discount_value: Number(promoDiscountValue),
+        max_uses: Number(promoMaxUses),
+      });
+      setMessage(`Promo code "${promoCode.toUpperCase()}" created and active in billing-svc!`);
+      setPromoCode('');
+      setTimeout(() => setMessage(null), 4000);
+    } catch (err: any) {
+      setError(err.message || 'Failed creating promo code');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateVoucher = (e: React.FormEvent) => {
+  const handleCreateVoucher = async (e: React.FormEvent) => {
     e.preventDefault();
-    const code = voucherCode.trim() || `GIFT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    setMessage(`Gift voucher code "${code}" created for ${voucherDays} days!`);
-    setVoucherCode('');
-    setTimeout(() => setMessage(null), 4000);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await createVoucherCode({
+        code: voucherCode.trim() || undefined,
+        plan_id: voucherPlanId,
+        bot_type: voucherBotType,
+        duration_days: Number(voucherDays),
+        is_dedicated: true,
+      });
+      setMessage(`Gift voucher "${res.code}" created successfully!`);
+      setVoucherCode('');
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Failed creating gift voucher');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminGrant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!grantUserId.trim() || !grantGuildId.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      await adminGrantSubscription({
+        user_id: grantUserId.trim(),
+        guild_id: grantGuildId.trim(),
+        bot_type: grantBotType,
+        plan_id: grantPlanId,
+        duration_days: Number(grantDurationDays),
+        is_dedicated: true,
+        is_zero_setup: true,
+      });
+      setMessage(`Admin subscription granted for guild ${grantGuildId.trim()}! Pod provisioning queued.`);
+      setGrantUserId('');
+      setGrantGuildId('');
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Failed granting subscription');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -95,265 +179,375 @@ export default function AdminPage() {
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Admin & Inventory Command</h1>
           <p className="text-slate-400 text-sm mt-1">
-            Manage pre-warmed turnkey token inventory, campaign promo discounts, and gift voucher codes.
+            Manage pre-warmed turnkey token inventory, campaign promo discounts, gift voucher codes, and manual grants.
           </p>
         </div>
       </div>
 
       {message && (
         <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
           <span>{message}</span>
         </div>
       )}
 
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Navigation Tabs */}
-      <div className="flex gap-2 border-b border-card-border pb-4">
+      <div className="flex rounded-xl bg-slate-900 p-1 border border-slate-800 max-w-xl">
         <button
           type="button"
           onClick={() => setActiveTab('pool')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeTab === 'pool'
-              ? 'bg-blurple text-white shadow-sm'
-              : 'text-slate-400 hover:text-white bg-slate-900/50'
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'pool' ? 'bg-blurple text-white shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Zap className="w-3.5 h-3.5" /> Turnkey Token Pool Inventory
+          <Zap className="w-3.5 h-3.5" /> Token Pool
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('promo')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeTab === 'promo'
-              ? 'bg-blurple text-white shadow-sm'
-              : 'text-slate-400 hover:text-white bg-slate-900/50'
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'promo' ? 'bg-blurple text-white shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Tag className="w-3.5 h-3.5" /> Promo Campaign Codes
+          <Tag className="w-3.5 h-3.5" /> Promo Codes
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('voucher')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeTab === 'voucher'
-              ? 'bg-blurple text-white shadow-sm'
-              : 'text-slate-400 hover:text-white bg-slate-900/50'
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'voucher' ? 'bg-blurple text-white shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Gift className="w-3.5 h-3.5" /> Gift Vouchers
+          <Gift className="w-3.5 h-3.5" /> Vouchers
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('grant')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'grant' ? 'bg-blurple text-white shadow-md' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <UserCheck className="w-3.5 h-3.5" /> Admin Grant
         </button>
       </div>
 
+      {/* Tab 1: Pre-warmed Token Inventory Pool */}
       {activeTab === 'pool' && (
-        <div className="space-y-8">
-          {/* Inventory Breakdown Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.entries(stats).map(([botType, counts]) => (
-              <div key={botType} className="glass-card rounded-2xl p-6 border border-card-border space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-white uppercase">{botType} Bots</h4>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                    Vault Secret Store
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                    <span className="text-[11px] text-emerald-400">Available</span>
-                    <p className="text-2xl font-black text-white font-mono mt-0.5">
-                      {counts.available || 0}
-                    </p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {['music', 'moderation', 'game'].map((category) => {
+              const categoryStats = stats[category] || { available: 0, assigned: 0 };
+              return (
+                <div key={category} className="p-6 rounded-2xl bg-card border border-card-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      {category} Inventory
+                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                   </div>
-                  <div className="p-3 rounded-xl bg-blurple/10 border border-blurple/20">
-                    <span className="text-[11px] text-blurple">Assigned</span>
-                    <p className="text-2xl font-black text-white font-mono mt-0.5">
-                      {counts.assigned || 0}
-                    </p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-extrabold text-white">
+                      {fetchingStats ? '...' : categoryStats.available ?? 0}
+                    </span>
+                    <span className="text-xs text-slate-400">available</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-800 flex justify-between">
+                    <span>Active Deployments:</span>
+                    <span className="font-mono text-slate-300">{categoryStats.assigned ?? 0}</span>
                   </div>
                 </div>
-
-                <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  Ready for instant checkout leasing
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Add Token Form */}
           <div className="p-6 rounded-2xl bg-card border border-card-border space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Plus className="w-4 h-4 text-blurple" /> Replenish Pre-Warmed Token Pool
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Key className="w-4 h-4 text-amber-400" /> Ingest Pre-warmed Token into Vault
             </h3>
             <p className="text-xs text-slate-400">
-              Add pre-created Discord Bot Application credentials so users can choose 0-setup deployment without ever creating developer keys.
+              Tokens are immediately written to HashiCorp Vault under <code>secret/data/bots/pool/&#123;pool_id&#125;</code> and marked <code>available</code> for turnkey delivery.
             </p>
 
-            <form onSubmit={handleAddToken} className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Bot Type</label>
-                <select
-                  value={newBotType}
-                  onChange={(e) => setNewBotType(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
-                >
-                  <option value="music">Music</option>
-                  <option value="moderation">Moderation</option>
-                  <option value="game">RPG / Game</option>
-                </select>
+            <form onSubmit={handleAddToken} className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Bot Type</label>
+                  <select
+                    value={newBotType}
+                    onChange={(e) => setNewBotType(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                  >
+                    <option value="music">Music Bot</option>
+                    <option value="moderation">Moderation Bot</option>
+                    <option value="game">RPG Bot</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Discord Application Client ID</label>
+                  <input
+                    type="text"
+                    value={newClientId}
+                    onChange={(e) => setNewClientId(e.target.value)}
+                    placeholder="123456789012345678"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Discord Bot Token</label>
+                  <input
+                    type="password"
+                    value={newToken}
+                    onChange={(e) => setNewToken(e.target.value)}
+                    placeholder="MTMxMj..."
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Client ID (Application ID)</label>
-                <input
-                  type="text"
-                  value={newClientId}
-                  onChange={(e) => setNewClientId(e.target.value)}
-                  placeholder="131234567890123456"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Bot Token</label>
-                <input
-                  type="password"
-                  value={newToken}
-                  onChange={(e) => setNewToken(e.target.value)}
-                  placeholder="MTMxMjM0... (Token)"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
-                />
-              </div>
-
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  disabled={!newClientId || !newToken}
-                  className="w-full py-2.5 px-4 rounded-lg bg-blurple hover:bg-blurple-hover disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-semibold transition-colors"
-                >
-                  Add to Token Pool
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading || !newClientId.trim() || !newToken.trim()}
+                className="py-2.5 px-6 rounded-xl bg-blurple hover:bg-blurple-hover disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blurple/20 transition-all"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Add Token to Vault Pool
+              </button>
             </form>
           </div>
         </div>
       )}
 
+      {/* Tab 2: Promo Codes */}
       {activeTab === 'promo' && (
         <div className="p-6 rounded-2xl bg-card border border-card-border space-y-6">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <Tag className="w-4 h-4 text-blurple" /> Create Marketing Promo Code
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Create percentage or fixed dollar discount codes for customers to use during checkout.
+            <p className="text-xs text-slate-400">
+              Create discount coupons validated by billing-svc during checkout.
             </p>
           </div>
 
-          <form onSubmit={handleCreatePromo} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Code Name</label>
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="e.g. VIPFREE, SUMMER50"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono uppercase tracking-wider focus:outline-none focus:border-blurple"
-              />
+          <form onSubmit={handleCreatePromo} className="space-y-4 max-w-xl">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Code</label>
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  placeholder="e.g. FLASH50"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white uppercase font-mono focus:outline-none focus:border-blurple"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Discount Type</label>
+                <select
+                  value={promoDiscountType}
+                  onChange={(e) => setPromoDiscountType(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed Cents ($)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">
+                  Discount Value ({promoDiscountType === 'percentage' ? '%' : 'Cents'})
+                </label>
+                <input
+                  type="number"
+                  value={promoDiscountValue}
+                  onChange={(e) => setPromoDiscountValue(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Max Redemptions</label>
+                <input
+                  type="number"
+                  value={promoMaxUses}
+                  onChange={(e) => setPromoMaxUses(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Discount Type</label>
-              <select
-                value={promoDiscountType}
-                onChange={(e) => setPromoDiscountType(e.target.value as any)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
-              >
-                <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed Cents ($)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">
-                Value {promoDiscountType === 'percentage' ? '(%)' : '(Cents)'}
-              </label>
-              <input
-                type="number"
-                value={promoDiscountValue}
-                onChange={(e) => setPromoDiscountValue(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
-              />
-            </div>
-
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={!promoCode}
-                className="w-full py-2.5 px-4 rounded-lg bg-blurple hover:bg-blurple-hover disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-semibold transition-colors"
-              >
-                Create Promo Code
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || !promoCode.trim()}
+              className="py-2.5 px-6 rounded-xl bg-blurple hover:bg-blurple-hover disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition-all shadow-md shadow-blurple/20 flex items-center gap-2"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Publish Promo Code
+            </button>
           </form>
         </div>
       )}
 
+      {/* Tab 3: Gift Vouchers */}
       {activeTab === 'voucher' && (
         <div className="p-6 rounded-2xl bg-card border border-card-border space-y-6">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Gift className="w-4 h-4 text-blurple" /> Generate Prepaid Gift Voucher
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Gift className="w-4 h-4 text-emerald-400" /> Generate Gift Voucher
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Create 1-time redeemable codes that server owners can use in Discord with{' '}
-              <code className="text-blurple font-mono">/redeem &lt;code&gt;</code>.
+            <p className="text-xs text-slate-400">
+              Creates single-use codes that can be redeemed without payment details for 100% free activations.
             </p>
           </div>
 
-          <form onSubmit={handleCreateVoucher} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Voucher Code (Optional)</label>
-              <input
-                type="text"
-                value={voucherCode}
-                onChange={(e) => setVoucherCode(e.target.value)}
-                placeholder="Leave blank for auto-generate"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono uppercase tracking-wider focus:outline-none focus:border-blurple"
-              />
+          <form onSubmit={handleCreateVoucher} className="space-y-4 max-w-xl">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Custom Code (Optional)</label>
+                <input
+                  type="text"
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value)}
+                  placeholder="Leave empty for auto-generated"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Bot Type</label>
+                <select
+                  value={voucherBotType}
+                  onChange={(e) => setVoucherBotType(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                >
+                  <option value="music">Music</option>
+                  <option value="moderation">Moderation</option>
+                  <option value="game">Game</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Plan Identifier</label>
+                <input
+                  type="text"
+                  value={voucherPlanId}
+                  onChange={(e) => setVoucherPlanId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Duration (Days)</label>
+                <input
+                  type="number"
+                  value={voucherDays}
+                  onChange={(e) => setVoucherDays(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Bot Type</label>
-              <select
-                value={voucherBotType}
-                onChange={(e) => setVoucherBotType(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
-              >
-                <option value="music">Music Bot</option>
-                <option value="moderation">Moderation Bot</option>
-                <option value="game">RPG Game Bot</option>
-              </select>
+            <button
+              type="submit"
+              disabled={loading}
+              className="py-2.5 px-6 rounded-xl bg-blurple hover:bg-blurple-hover disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition-all shadow-md shadow-blurple/20 flex items-center gap-2"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Generate Voucher Code
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Tab 4: Direct Admin Grant */}
+      {activeTab === 'grant' && (
+        <div className="p-6 rounded-2xl bg-card border border-card-border space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-indigo-400" /> Direct Admin Grant
+            </h3>
+            <p className="text-xs text-slate-400">
+              Immediately create and activate a subscription for any Discord User ID & Guild ID without requiring payment or checkout.
+            </p>
+          </div>
+
+          <form onSubmit={handleAdminGrant} className="space-y-4 max-w-xl">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Discord User ID</label>
+                <input
+                  type="text"
+                  value={grantUserId}
+                  onChange={(e) => setGrantUserId(e.target.value)}
+                  placeholder="123456789012345678"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Discord Guild ID</label>
+                <input
+                  type="text"
+                  value={grantGuildId}
+                  onChange={(e) => setGrantGuildId(e.target.value)}
+                  placeholder="987654321098765432"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Bot Type</label>
+                <select
+                  value={grantBotType}
+                  onChange={(e) => setGrantBotType(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                >
+                  <option value="music">Music</option>
+                  <option value="moderation">Moderation</option>
+                  <option value="game">Game</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Plan ID</label>
+                <input
+                  type="text"
+                  value={grantPlanId}
+                  onChange={(e) => setGrantPlanId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Duration (Days)</label>
+                <input
+                  type="number"
+                  value={grantDurationDays}
+                  onChange={(e) => setGrantDurationDays(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Validity (Days)</label>
-              <input
-                type="number"
-                value={voucherDays}
-                onChange={(e) => setVoucherDays(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
-              />
-            </div>
-
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full py-2.5 px-4 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold transition-colors"
-              >
-                Generate Voucher
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || !grantUserId.trim() || !grantGuildId.trim()}
+              className="py-2.5 px-6 rounded-xl bg-blurple hover:bg-blurple-hover disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition-all shadow-md shadow-blurple/20 flex items-center gap-2"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Grant Subscription Instantly
+            </button>
           </form>
         </div>
       )}

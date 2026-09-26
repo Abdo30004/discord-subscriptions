@@ -11,15 +11,24 @@ import {
   Shield,
   Music,
   Gamepad2,
-  Sparkles,
-  HelpCircle,
+  Cpu,
+  Loader2,
+  LogIn,
+  AlertCircle,
 } from 'lucide-react';
-import { MOCK_BOTS, MOCK_GUILDS, checkTokenPoolAvailable } from '@/lib/api';
+import { getCatalogBots, checkTokenPoolAvailable } from '@/lib/api';
 import { BotTemplate, SubscriptionPlan } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function StorePage() {
   return (
-    <Suspense fallback={<div className="max-w-7xl mx-auto py-12 px-4 text-center text-slate-400 text-sm">Loading Store...</div>}>
+    <Suspense
+      fallback={
+        <div className="max-w-7xl mx-auto py-12 px-4 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-blurple" /> Loading Store...
+        </div>
+      }
+    >
       <StoreContent />
     </Suspense>
   );
@@ -28,46 +37,108 @@ export default function StorePage() {
 function StoreContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialBotId = searchParams.get('bot') || MOCK_BOTS[0].id;
+  const { user, guilds, selectedGuild, selectGuild, loginWithDiscord, loginAsDev } = useAuth();
 
-  const [selectedBot, setSelectedBot] = useState<BotTemplate>(
-    MOCK_BOTS.find((b) => b.id === initialBotId) || MOCK_BOTS[0]
-  );
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(
-    selectedBot.plans?.[1] || selectedBot.plans?.[0]!
-  );
-  const [selectedGuild, setSelectedGuild] = useState<string>(MOCK_GUILDS[0].id);
+  const [bots, setBots] = useState<BotTemplate[]>([]);
+  const [selectedBot, setSelectedBot] = useState<BotTemplate | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [targetGuildId, setTargetGuildId] = useState<string>('');
+  const [customInstanceLabel, setCustomInstanceLabel] = useState<string>('');
   const [zeroSetup, setZeroSetup] = useState<boolean>(true);
   const [poolAvailable, setPoolAvailable] = useState<boolean>(true);
-  const [poolCount, setPoolCount] = useState<number>(5);
+  const [poolCount, setPoolCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch bot catalog from catalog-svc
   useEffect(() => {
-    // When bot changes, reset plan selection
-    if (selectedBot.plans && selectedBot.plans.length > 0) {
-      setSelectedPlan(selectedBot.plans[selectedBot.plans.length - 1]);
+    getCatalogBots()
+      .then((data) => {
+        setBots(data);
+        if (data.length > 0) {
+          const requestedBotId = searchParams.get('bot');
+          const matched = data.find((b) => b.id === requestedBotId || b.slug === requestedBotId);
+          const activeBot = matched || data[0];
+          setSelectedBot(activeBot);
+
+          const requestedPlanId = searchParams.get('plan');
+          const matchedPlan = activeBot.plans?.find((p) => p.id === requestedPlanId);
+          setSelectedPlan(matchedPlan || activeBot.plans?.[activeBot.plans.length - 1] || activeBot.plans?.[0] || null);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed fetching catalog:', err);
+        setError('Failed to fetch bot templates from catalog service.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [searchParams]);
+
+  // Sync target guild with auth context
+  useEffect(() => {
+    if (selectedGuild) {
+      setTargetGuildId(selectedGuild.id);
+    } else if (guilds.length > 0) {
+      setTargetGuildId(guilds[0].id);
     }
+  }, [selectedGuild, guilds]);
 
-    // Check pre-warmed token pool availability for selected bot
-    checkTokenPoolAvailable(selectedBot.category).then((res) => {
-      setPoolAvailable(res.is_available);
-      setPoolCount(res.available_count);
-    });
-  }, [selectedBot]);
+  // Check token pool availability when bot selection changes
+  useEffect(() => {
+    if (selectedBot) {
+      if (selectedBot.plans && selectedBot.plans.length > 0 && !selectedPlan) {
+        setSelectedPlan(selectedBot.plans[selectedBot.plans.length - 1]);
+      }
 
-  const basePriceCents = selectedPlan.price_cents;
+      checkTokenPoolAvailable(selectedBot.category).then((res) => {
+        setPoolAvailable(res.is_available);
+        setPoolCount(res.available_count);
+      });
+    }
+  }, [selectedBot, selectedPlan]);
+
+  const basePriceCents = selectedPlan?.price_cents || 0;
   const zeroSetupFeeCents = zeroSetup ? 299 : 0;
   const totalPriceCents = basePriceCents + zeroSetupFeeCents;
 
   const handleProceedToCheckout = () => {
+    if (!selectedBot || !selectedPlan) return;
+    if (!targetGuildId) {
+      setError('Please select or specify a target Discord server before proceeding.');
+      return;
+    }
+
     const params = new URLSearchParams({
       bot: selectedBot.id,
       botType: selectedBot.category,
       plan: selectedPlan.id,
-      guild: selectedGuild,
+      guild: targetGuildId,
+      instanceLabel: customInstanceLabel.trim() || 'Default',
       zeroSetup: zeroSetup ? 'true' : 'false',
     });
     router.push(`/checkout?${params.toString()}`);
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-24 px-4 text-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-blurple mx-auto" />
+        <p className="text-slate-400 text-sm">Loading bot catalog from Catalog Service...</p>
+      </div>
+    );
+  }
+
+  if (error || bots.length === 0) {
+    return (
+      <div className="max-w-xl mx-auto py-24 px-4 text-center space-y-4">
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm flex items-center justify-center gap-2">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{error || 'No bot templates found in catalog.'}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 space-y-12">
@@ -90,196 +161,264 @@ function StoreContent() {
         <div className="space-y-4">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">1. Select Bot Template</h3>
           <div className="space-y-3">
-            {MOCK_BOTS.map((bot) => {
-              const isSelected = selectedBot.id === bot.id;
+            {bots.map((bot) => {
+              const isSelected = selectedBot?.id === bot.id;
               const isMusic = bot.category === 'music';
               const isMod = bot.category === 'moderation';
+              const isGame = bot.category === 'game';
+              const Icon = isMusic ? Music : isMod ? Shield : isGame ? Gamepad2 : Cpu;
+              const colorClass = isMusic ? 'text-cyan-400' : isMod ? 'text-amber-400' : 'text-purple-400';
+
               return (
                 <button
                   key={bot.id}
                   type="button"
-                  onClick={() => setSelectedBot(bot)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-4 ${
+                  onClick={() => {
+                    setSelectedBot(bot);
+                    if (bot.plans && bot.plans.length > 0) {
+                      setSelectedPlan(bot.plans[bot.plans.length - 1]);
+                    }
+                  }}
+                  className={`w-full p-4 rounded-2xl text-left border transition-all flex items-start gap-4 ${
                     isSelected
-                      ? 'bg-blurple/10 border-blurple shadow-md'
+                      ? 'bg-blurple/15 border-blurple shadow-md'
                       : 'bg-card border-card-border hover:border-slate-700'
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white ${
-                      isMusic ? 'bg-purple-600' : isMod ? 'bg-blue-600' : 'bg-emerald-600'
+                    className={`p-3 rounded-xl shrink-0 ${
+                      isSelected ? 'bg-blurple text-white' : 'bg-slate-800 ' + colorClass
                     }`}
                   >
-                    {isMusic ? (
-                      <Music className="w-5 h-5" />
-                    ) : isMod ? (
-                      <Shield className="w-5 h-5" />
-                    ) : (
-                      <Gamepad2 className="w-5 h-5" />
-                    )}
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                      {bot.name}
-                      {isSelected && (
-                        <span className="w-2 h-2 rounded-full bg-blurple" />
-                      )}
-                    </h4>
-                    <p className="text-xs text-slate-400 line-clamp-2 mt-1">{bot.description}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-white truncate">{bot.name}</h4>
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                        {bot.category}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">{bot.description}</p>
                   </div>
                 </button>
               );
             })}
           </div>
 
-          {/* Server Selector */}
-          <div className="pt-6 border-t border-card-border space-y-3">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">2. Target Discord Server</h3>
-            <div className="space-y-2">
-              <label className="text-xs text-slate-400">Select where the bot will be installed:</label>
-              <select
-                value={selectedGuild}
-                onChange={(e) => setSelectedGuild(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blurple"
-              >
-                {MOCK_GUILDS.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name} (Admin)
-                  </option>
-                ))}
-              </select>
+          {/* Target Discord Server Selection */}
+          <div className="p-5 rounded-2xl bg-card border border-card-border space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Server className="w-3.5 h-3.5 text-blurple" /> Target Discord Server
+            </h4>
+
+            {user ? (
+              guilds.length > 0 ? (
+                <div className="space-y-2">
+                  <select
+                    value={targetGuildId}
+                    onChange={(e) => {
+                      setTargetGuildId(e.target.value);
+                      const g = guilds.find((x) => x.id === e.target.value);
+                      if (g) selectGuild(g);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-blurple"
+                  >
+                    {guilds.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} {g.owner ? '(Owner)' : '(Admin)'}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-400">
+                    Fetched from your active Discord account. Only servers with Manage Server permissions are listed.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={targetGuildId}
+                    onChange={(e) => setTargetGuildId(e.target.value)}
+                    placeholder="Enter Guild ID (e.g. 1122334455)"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blurple"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    No servers detected from OAuth. Enter your target Discord Server ID directly.
+                  </p>
+                </div>
+              )
+            ) : (
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+                <p className="text-xs text-slate-300">Log in to automatically select from your Discord servers:</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => loginWithDiscord()}
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5"
+                  >
+                    <LogIn className="w-3.5 h-3.5" /> Sign in with Discord
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => loginAsDev()}
+                    className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700"
+                  >
+                    Dev Login
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Instance Label for Multi-Subscription Tenancy */}
+            <div className="pt-2 border-t border-slate-800">
+              <label className="text-[11px] text-slate-400 block mb-1 font-medium">
+                Instance Label (Multi-Bot Tag)
+              </label>
+              <input
+                type="text"
+                value={customInstanceLabel}
+                onChange={(e) => setCustomInstanceLabel(e.target.value)}
+                placeholder="e.g. Main Lobby, VIP DJ, Defense Shield"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blurple"
+              />
+              <span className="text-[10px] text-slate-500 mt-1 block">
+                Allows running multiple bots of the same type without collisions.
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Center Column: Plan Tiers */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">3. Choose Subscription Tier</h3>
+        {/* Middle & Right Columns: Plan Configurator & Delivery Method */}
+        <div className="lg:col-span-2 space-y-6">
           <div className="space-y-4">
-            {selectedBot.plans?.map((plan) => {
-              const isSelected = selectedPlan.id === plan.id;
-              return (
-                <div
-                  key={plan.id}
-                  onClick={() => setSelectedPlan(plan)}
-                  className={`cursor-pointer rounded-2xl p-5 border transition-all relative ${
-                    isSelected
-                      ? 'bg-slate-900/90 border-blurple shadow-lg ring-1 ring-blurple/50'
-                      : 'bg-card border-card-border hover:border-slate-700'
-                  }`}
-                >
-                  {plan.is_dedicated && (
-                    <span className="absolute top-4 right-4 text-[10px] font-mono px-2 py-0.5 rounded-full bg-blurple/20 text-blurple border border-blurple/30 font-semibold uppercase">
-                      Dedicated K8s Pod
-                    </span>
-                  )}
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">2. Select Subscription Tier</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {selectedBot?.plans?.map((plan) => {
+                const isSelected = selectedPlan?.id === plan.id;
+                const isDedicated = plan.is_dedicated;
 
-                  <div className="space-y-2">
-                    <h4 className="text-base font-bold text-white">{plan.name}</h4>
-                    <p className="text-xs text-slate-400">{plan.description}</p>
-                    <div className="text-2xl font-black text-white pt-1">
-                      ${plan.price_cents / 100}
-                      <span className="text-xs font-normal text-slate-400"> / month</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-4 border-t border-slate-800 space-y-1.5">
-                    {plan.features.map((feature, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs text-slate-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>{feature}</span>
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan)}
+                    className={`p-6 rounded-2xl text-left border flex flex-col justify-between transition-all ${
+                      isSelected
+                        ? 'bg-slate-900 border-blurple ring-1 ring-blurple shadow-xl'
+                        : 'bg-card border-card-border hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            isDedicated
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {isDedicated ? 'Dedicated Pod' : 'Shared Host'}
+                        </span>
+                        {isSelected && <CheckCircle2 className="w-5 h-5 text-blurple" />}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+
+                      <div>
+                        <h4 className="text-base font-bold text-white">{plan.name}</h4>
+                        <p className="text-xs text-slate-400 mt-1">{plan.description}</p>
+                      </div>
+
+                      <div className="pt-2">
+                        <span className="text-2xl font-black text-white">
+                          {plan.price_cents === 0 ? 'Free' : `$${(plan.price_cents / 100).toFixed(2)}`}
+                        </span>
+                        <span className="text-xs text-slate-400 font-medium ml-1">/ month</span>
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t border-slate-800">
+                        {plan.features?.map((f, i) => (
+                          <div key={i} className="text-xs text-slate-300 flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Right Column: Checkout Summary & Zero-Setup Addon */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">4. Turnkey Options & Order</h3>
-
-          <div className="glass-panel rounded-2xl p-6 space-y-6 border border-card-border">
-            {/* Zero-Setup Managed Token Pool Card */}
-            <div
-              onClick={() => poolAvailable && setZeroSetup(!zeroSetup)}
-              className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                zeroSetup
-                  ? 'bg-amber-500/10 border-amber-500/40'
-                  : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-md bg-amber-500/20 text-amber-400">
-                    <Zap className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-bold text-white flex items-center gap-1.5">
-                      Turnkey 0-Setup Deployment
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 font-mono">
-                        +$2.99/mo
-                      </span>
-                    </h5>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      No Discord Developer Portal needed. Instant bot invite link generated right away.
-                    </p>
-                  </div>
+          {/* Turnkey Zero-Setup Toggle */}
+          <div className="p-6 rounded-2xl bg-card border border-card-border space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    Zero-Setup Turnkey Delivery
+                  </h4>
+                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    Recommended
+                  </span>
                 </div>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+                  Don't want to create Discord applications, copy bot tokens, or configure intents? Our admin token pool automatically provides pre-warmed credentials. 1-click deployment straight into your server.
+                </p>
+                <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-1">
+                  <span className={`w-2 h-2 rounded-full ${poolAvailable ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                  <span>
+                    Pre-warmed Inventory: <strong>{poolCount} available tokens</strong> for {selectedBot?.name}
+                  </span>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
                 <input
                   type="checkbox"
                   checked={zeroSetup}
                   onChange={(e) => setZeroSetup(e.target.checked)}
-                  disabled={!poolAvailable}
-                  className="mt-1 h-4 w-4 rounded border-slate-700 text-blurple focus:ring-blurple shrink-0"
+                  className="sr-only peer"
                 />
-              </div>
+                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blurple"></div>
+              </label>
+            </div>
+          </div>
 
-              {poolAvailable ? (
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>In Stock: {poolCount} pre-warmed tokens ready for immediate deployment</span>
-                </div>
-              ) : (
-                <div className="mt-3 text-[11px] text-red-400 font-medium">
-                  Sold out for this bot type. Self-setup token required.
-                </div>
-              )}
+          {/* Order Summary Card */}
+          <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">Monthly Subscription ({selectedPlan?.name}):</span>
+              <span className="font-mono text-white font-bold">
+                {basePriceCents === 0 ? '$0.00' : `$${(basePriceCents / 100).toFixed(2)}`}
+              </span>
             </div>
 
-            {/* Price Calculation Summary */}
-            <div className="space-y-3 pt-4 border-t border-slate-800 text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>{selectedBot.name} ({selectedPlan.name})</span>
-                <span className="text-white font-mono">${(basePriceCents / 100).toFixed(2)}</span>
+            {zeroSetup && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" /> Pre-warmed Token Allocation:
+                </span>
+                <span className="font-mono text-white font-bold">$2.99</span>
               </div>
-              {zeroSetup && (
-                <div className="flex justify-between text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-amber-400" /> Turnkey 0-Setup Service
-                  </span>
-                  <span className="text-white font-mono">${(zeroSetupFeeCents / 100).toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-base font-bold text-white pt-3 border-t border-slate-800">
-                <span>Total Due Monthly</span>
-                <span className="text-blurple font-mono text-xl">${(totalPriceCents / 100).toFixed(2)}</span>
+            )}
+
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Total Billed Today</span>
+                <span className="text-2xl font-black text-white">
+                  {totalPriceCents === 0 ? 'Free' : `$${(totalPriceCents / 100).toFixed(2)}`}
+                </span>
               </div>
-            </div>
 
-            {/* Action Button */}
-            <button
-              type="button"
-              onClick={handleProceedToCheckout}
-              className="w-full py-3.5 px-4 rounded-xl bg-blurple hover:bg-blurple-hover text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blurple/25 transition-all"
-            >
-              Continue to Checkout <ArrowRight className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
-              <Shield className="w-3.5 h-3.5" /> Cancel anytime with 1-click in Dashboard or Discord
+              <button
+                type="button"
+                onClick={handleProceedToCheckout}
+                className="py-3 px-6 rounded-xl bg-blurple hover:bg-blurple-hover text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-blurple/25 transition-all"
+              >
+                Proceed to Checkout <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>

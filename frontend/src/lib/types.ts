@@ -148,3 +148,59 @@ export interface UserProfile {
   avatar?: string;
   email?: string;
 }
+
+export interface AuthSession {
+  token: string;
+  expires_at: string;
+  user: UserProfile;
+}
+
+export interface CheckoutRequest {
+  user_id: string;
+  guild_id: string;
+  plan_id: string;
+  bot_type: string;
+  instance_label?: string;
+  promo_code?: string;
+  is_zero_setup?: boolean;
+  return_url?: string;
+  cancel_url?: string;
+}
+
+export interface ProvisionRequest {
+  subscription_id: string;
+  user_id: string;
+  guild_id: string;
+  bot_type: string;
+  instance_label?: string;
+  bot_token?: string;
+  image_tag?: string;
+  is_zero_setup?: boolean;
+}
+
+export interface AdminGrantRequest {
+  user_id: string;
+  guild_id: string;
+  bot_type: string;
+  plan_id: string;
+  instance_label?: string;
+  duration_days: number;
+  is_dedicated: boolean;
+  is_zero_setup: boolean;
+}
+
+export interface CreatePromoRequest {
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  max_uses: number;
+  duration_days?: number;
+}
+
+export interface CreateVoucherRequest {
+  code?: string;
+  plan_id: string;
+  bot_type: string;
+  duration_days: number;
+  is_dedicated: boolean;
+}

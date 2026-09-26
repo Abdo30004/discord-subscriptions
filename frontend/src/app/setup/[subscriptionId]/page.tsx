@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Key,
   Shield,
@@ -13,12 +13,18 @@ import {
   Bot,
   Zap,
 } from 'lucide-react';
-import { provisionDeployment, MOCK_USER } from '@/lib/api';
+import { provisionDeployment } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SetupWizardPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const subId = (params.subscriptionId as string) || 'sub-manual';
+  const { user, selectedGuild } = useAuth();
+
+  const subId = (params.subscriptionId as string) || '';
+  const guildId = searchParams.get('guild') || selectedGuild?.id || '';
+  const botType = searchParams.get('botType') || 'music';
 
   const [botToken, setBotToken] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,15 +37,19 @@ export default function SetupWizardPage() {
       setError('Please provide a Discord bot token');
       return;
     }
+    if (!user) {
+      setError('You must be logged in to provision a bot pod');
+      return;
+    }
 
     setLoading(true);
     setError(null);
     try {
       await provisionDeployment({
         subscription_id: subId,
-        user_id: MOCK_USER.id,
-        guild_id: 'guild-valhalla-101',
-        bot_type: 'music',
+        user_id: user.id,
+        guild_id: guildId || '0',
+        bot_type: botType,
         bot_token: botToken.trim(),
         image_tag: 'latest',
         is_zero_setup: false,
@@ -48,13 +58,9 @@ export default function SetupWizardPage() {
       setSuccess(true);
       setTimeout(() => {
         router.push('/dashboard');
-      }, 2000);
-    } catch (err: any) {
-      // In dev mode fallback, treat as successful
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/dashboard');
       }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to provision deployment pod in deploy-svc');
     } finally {
       setLoading(false);
     }
