@@ -78,6 +78,11 @@ const CATEGORIES = {
 };
 
 function parseCommit(commit) {
+  // Skip changelog synchronization and release meta-commits to avoid cyclic changelog updates
+  if (/^(?:docs|chore|ci)\(changelog\)|^chore\(release\)/i.test(commit.subject)) {
+    return { skip: true };
+  }
+
   const match = commit.subject.match(/^([a-z]+)(?:\(([^)]+)\))?!?: (.+)$/i);
   if (!match) {
     return {
@@ -116,6 +121,7 @@ function generateMarkdown(commits, releaseVersion, releaseDate) {
 
   for (const c of commits) {
     const parsed = parseCommit(c);
+    if (!parsed || parsed.skip) continue;
     CATEGORIES[parsed.type].items.push(parsed);
   }
 
