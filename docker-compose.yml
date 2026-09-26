@@ -64,8 +64,6 @@ services:
       dockerfile: microservices/auth-svc/Dockerfile
     container_name: discord_subscriptions_auth_svc
     restart: unless-stopped
-    ports:
-      - "8080:8080"
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -96,8 +94,6 @@ services:
       dockerfile: microservices/catalog-svc/Dockerfile
     container_name: discord_subscriptions_catalog_svc
     restart: unless-stopped
-    ports:
-      - "8081:8081"
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -125,8 +121,6 @@ services:
       dockerfile: microservices/billing-svc/Dockerfile
     container_name: discord_subscriptions_billing_svc
     restart: unless-stopped
-    ports:
-      - "8082:8082"
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -164,8 +158,6 @@ services:
       dockerfile: microservices/deploy-svc/Dockerfile
     container_name: discord_subscriptions_deploy_svc
     restart: unless-stopped
-    ports:
-      - "8083:8083"
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -203,8 +195,6 @@ services:
       dockerfile: microservices/monitor-svc/Dockerfile
     container_name: discord_subscriptions_monitor_svc
     restart: unless-stopped
-    ports:
-      - "8084:8084"
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -247,7 +237,7 @@ services:
       BILLING_SVC_URL: http://billing-svc:8082
       DEPLOY_SVC_URL: http://deploy-svc:8083
       MONITOR_SVC_URL: http://monitor-svc:8084
-      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:3000}
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8085/health"]
       interval: 10s
@@ -272,14 +262,12 @@ services:
       dockerfile: frontend/Dockerfile
     container_name: discord_subscriptions_frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
-      NEXT_PUBLIC_AUTH_SVC_URL: http://localhost:8080
-      NEXT_PUBLIC_CATALOG_SVC_URL: http://localhost:8081
-      NEXT_PUBLIC_BILLING_SVC_URL: http://localhost:8082
-      NEXT_PUBLIC_DEPLOY_SVC_URL: http://localhost:8083
-      NEXT_PUBLIC_MONITOR_SVC_URL: http://localhost:8084
+      NEXT_PUBLIC_AUTH_SVC_URL: ""
+      NEXT_PUBLIC_CATALOG_SVC_URL: ""
+      NEXT_PUBLIC_BILLING_SVC_URL: ""
+      NEXT_PUBLIC_DEPLOY_SVC_URL: ""
+      NEXT_PUBLIC_MONITOR_SVC_URL: ""
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 15s

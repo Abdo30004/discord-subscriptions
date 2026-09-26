@@ -11,11 +11,11 @@ import {
 } from './types';
 
 const API_BASE = {
-  auth: process.env.NEXT_PUBLIC_AUTH_SVC_URL || 'http://localhost:8080',
-  catalog: process.env.NEXT_PUBLIC_CATALOG_SVC_URL || 'http://localhost:8081',
-  billing: process.env.NEXT_PUBLIC_BILLING_SVC_URL || 'http://localhost:8082',
-  deploy: process.env.NEXT_PUBLIC_DEPLOY_SVC_URL || 'http://localhost:8083',
-  monitor: process.env.NEXT_PUBLIC_MONITOR_SVC_URL || 'http://localhost:8084',
+  auth: process.env.NEXT_PUBLIC_AUTH_SVC_URL ?? '',
+  catalog: process.env.NEXT_PUBLIC_CATALOG_SVC_URL ?? '',
+  billing: process.env.NEXT_PUBLIC_BILLING_SVC_URL ?? '',
+  deploy: process.env.NEXT_PUBLIC_DEPLOY_SVC_URL ?? '',
+  monitor: process.env.NEXT_PUBLIC_MONITOR_SVC_URL ?? '',
 };
 
 // Default fallback mock bots if catalog service is down
