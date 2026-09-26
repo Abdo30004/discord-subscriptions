@@ -10,7 +10,8 @@ Before Traefik, each microservice exposed its own individual host port (`8080` t
 
 With Traefik acting as the unified edge gateway:
 - **Clients communicate through a single port** (`:80` for local HTTP, `:443` for production HTTPS).
-- **Internal ports remain shielded** behind the Docker network (`platform-net`) or Kubernetes ClusterIP.
+- **Zero Host Port Exports**: All 5 Go microservices (`auth`, `catalog`, `billing`, `deploy`, `monitor`) and the Next.js `frontend` run strictly on the internal Docker network (`platform-net`) with zero exported ports on the host.
+- **Unified Web & API Access**: Users access the web interface directly at `http://localhost/` and all frontend API calls use relative paths (`/api/v1/...`), eliminating CORS issues entirely.
 - **Traefik Web Dashboard** provides real-time traffic visualization and health metrics at `:8090`.
 
 ```mermaid
