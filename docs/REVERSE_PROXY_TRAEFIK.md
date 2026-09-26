@@ -25,6 +25,7 @@ flowchart TD
         RouterBilling["Router: /api/v1/billing, /subscriptions, /promos, /vouchers"]
         RouterDeploy["Router: /api/v1/deployments & /api/v1/token-pool"]
         RouterMonitor["Router: /api/v1/targets & /api/v1/monitor"]
+        RouterBot["Router: /api/v1/manager-bot"]
         RouterUI["Router: / (Catch-all Priority: 1)"]
 
         MWCors["Middleware: CORS Headers"]
@@ -38,17 +39,20 @@ flowchart TD
         BillingSvc["billing-svc :8082"]
         DeploySvc["deploy-svc :8083"]
         MonitorSvc["monitor-svc :8084"]
+        ManagerBot["manager-bot :8085<br/>(Discord Gateway Client)"]
         Frontend["frontend :3000"]
     end
 
     Client --> TraefikGateway
     Dashboard -.->|Inspect Routers & Services| TraefikGateway
+    ManagerBot -->|Internal REST Calls http://traefik| TraefikGateway
 
     RouterAuth --> MWCors --> AuthSvc
     RouterCatalog --> MWCors --> CatalogSvc
     RouterBilling --> MWCors --> BillingSvc
     RouterDeploy --> MWCors --> DeploySvc
     RouterMonitor --> MWCors --> MonitorSvc
+    RouterBot --> MWCors --> ManagerBot
     RouterUI --> MWCompress --> Frontend
 ```
 
@@ -65,6 +69,7 @@ Traefik evaluates incoming request paths using **PathPrefix** rules:
 | **`/api/v1/billing`**<br>**`/api/v1/subscriptions`**<br>**`/api/v1/promos`**<br>**`/api/v1/vouchers`**<br>**`/api/v1/webhooks`** | `billing-svc` | `:8082` | Checkout, PayPal webhooks, promo codes, gift voucher redemption |
 | **`/api/v1/deployments`**<br>**`/api/v1/deploy`**<br>**`/api/v1/token-pool`** | `deploy-svc` | `:8083` | Pod provisioning, turnkey token allocation, persona customization |
 | **`/api/v1/targets`**<br>**`/api/v1/monitor`** | `monitor-svc` | `:8084` | Health logs, real-time container metrics, watchdog status |
+| **`/api/v1/manager-bot`** | `manager-bot` | `:8085` | Discord Gateway status, websocket ping, cluster diagnostics |
 | **`/`** *(Catch-all, priority 1)* | `frontend` | `:3000` | Next.js 16 Web Dashboard, Storefront, Admin Panel |
 
 ---

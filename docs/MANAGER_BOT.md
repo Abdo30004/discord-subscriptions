@@ -16,13 +16,18 @@ flowchart TD
         Dropdown["StringSelectMenu: Bot Fleet Selector"]
     end
 
-    subgraph ManagerBotCore ["Manager Bot (TypeScript / Discord.js v14)"]
+    subgraph ManagerBotCore ["Manager Bot Container (docker-compose: manager-bot)"]
         Gateway["Discord Gateway Client (src/index.ts)"]
         CmdRouter["Command Router (src/commands/)"]
-        APIClient["Backend REST Client (src/api/client.ts)"]
+        APIClient["Backend REST Client (src/api/)"]
+        HealthServer["Health Probe (:8085 /health)"]
     end
 
-    subgraph BackendServices ["Platform Microservices"]
+    subgraph TraefikMesh ["Traefik Gateway Network (platform-net)"]
+        TraefikGateway["Traefik v3 Proxy (http://traefik:80)"]
+    end
+
+    subgraph BackendServices ["Isolated Platform Microservices"]
         CatalogSvc["catalog-svc :8081"]
         BillingSvc["billing-svc :8082"]
         DeploySvc["deploy-svc :8083"]
@@ -33,7 +38,9 @@ flowchart TD
     SlashCmd --> Gateway
     Gateway --> CmdRouter
     CmdRouter --> APIClient
-    APIClient --> CatalogSvc & BillingSvc & DeploySvc & MonitorSvc
+    APIClient -->|HTTP REST via Traefik| TraefikGateway
+    TraefikGateway --> CatalogSvc & BillingSvc & DeploySvc & MonitorSvc
+    TraefikGateway -.->|Route: /api/v1/manager-bot| HealthServer
     CmdRouter --> Dropdown
     Dropdown --> Gateway
 ```
@@ -104,14 +111,25 @@ await interaction.editReply({
 
 ---
 
-## 4. REST API Client Layer (`src/api/client.ts`)
+## 4. Docker Deployment & Traefik Mesh Networking
 
-The Manager Bot communicates with backend microservices over an internal Docker network or VPC using a typed HTTP client:
+The Manager Bot runs as a managed container (`discord_subscriptions_manager_bot`) alongside the Go microservices and Next.js frontend within the unified `platform-net` Docker network.
 
-- **Base URLs Configured via Environment**:
-  - `CATALOG_SVC_URL` (default: `http://catalog-svc:8081`)
-  - `BILLING_SVC_URL` (default: `http://billing-svc:8082`)
-  - `DEPLOY_SVC_URL` (default: `http://deploy-svc:8083`)
-  - `MONITOR_SVC_URL` (default: `http://monitor-svc:8084`)
-- **Timeout & Retries**: All HTTP requests enforce a 3-second timeout to comply with Discord's interaction response deadline.
-- **Graceful Degradation**: If a microservice is temporarily unreachable, the bot sends an ephemeral apology with diagnostic error codes instead of crashing.
+### 4.1 Traefik Network Connectivity
+Rather than establishing disparate point-to-point connections to internal service ports, the Manager Bot routes all REST requests through the **Traefik Edge Gateway (`http://traefik:80`)**:
+- **Environment Configuration**:
+  - `TRAEFIK_URL=http://traefik` (or `GATEWAY_URL=http://traefik`)
+  - `CATALOG_SVC_URL=http://traefik` -> routes `/api/v1/catalog/...` and `/api/v1/bots/...`
+  - `BILLING_SVC_URL=http://traefik` -> routes `/api/v1/billing/...` and `/api/v1/vouchers/...`
+  - `DEPLOY_SVC_URL=http://traefik` -> routes `/api/v1/deployments/...`
+  - `MONITOR_SVC_URL=http://traefik` -> routes `/api/v1/monitor/...`
+  - `DASHBOARD_URL=http://localhost`
+
+### 4.2 Zero Host Port Ingress & Diagnostics Probe
+- **Zero Host Exposure**: The bot container exposes no ports directly to the host machine.
+- **Internal Probe**: An HTTP health check server listens on port `8085` (`/health`, `/livez`, `/readyz`).
+- **Traefik Reverse Proxy Route**: Traefik exposes `/api/v1/manager-bot/health` through the reverse proxy, forwarding requests directly to `http://manager-bot:8085`.
+- **Docker Healthcheck**: Configured with `wget -qO- http://127.0.0.1:8085/health` with a 10s interval and 10s start period.
+- **Service Dependency Choreography**: The `manager-bot` container specifies `depends_on: traefik: condition: service_healthy`, ensuring the reverse proxy and all upstream microservices are active before the bot establishes its Discord Gateway websocket connection.
+- **Timeout & Retries**: All HTTP requests enforce timeouts to comply with Discord's 3-second interaction deadline.
+- **Graceful Degradation**: If an upstream service is temporarily cycling, the bot responds with an ephemeral Discord embed containing diagnostic status details instead of crashing.

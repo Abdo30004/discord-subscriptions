@@ -11,6 +11,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **bot**: configure manager-bot container to route API requests through Traefik ([e7cd82e](https://github.com/Abdo30004/discord-subscriptions/commit/e7cd82e1e0e285429cb2b237c85002ec77263edb))
 - **frontend**: enforce conditional navigation and strict route authentication guards ([f698d5d](https://github.com/Abdo30004/discord-subscriptions/commit/f698d5d9236c95ef7ce22ddc00caaf896e0f9421))
 - **frontend**: fully connect application to backend apis and remove mock data ([28a0adc](https://github.com/Abdo30004/discord-subscriptions/commit/28a0adc7c5f53758b7c27567fcf67017751ecb5d))
 - **catalog**: register /api/v1/bots route aliases alongside /api/v1/catalog/bots ([17cec58](https://github.com/Abdo30004/discord-subscriptions/commit/17cec58d7355edb0633b445c8e707c1df34bed88))
@@ -39,6 +40,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🏗️ Infrastructure & Persistence
 
+- **infra**: integrate manager-bot into Traefik network mesh in Docker Compose ([aa79b2f](https://github.com/Abdo30004/discord-subscriptions/commit/aa79b2f112880ece49622bfdddcbf81f28caa332))
 - **infra**: initialize repository scaffolding, multi-workspace go tooling, and database seeds ([a700cce](https://github.com/Abdo30004/discord-subscriptions/commit/a700cce8b14faf23cb01fdddfc3bd93766fcd24c))
 
 ### 📚 Documentation & Architecture Guides
