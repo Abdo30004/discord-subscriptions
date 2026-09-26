@@ -22,6 +22,10 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 - **catalog**: implement bot templates and subscription plans catalog microservice ([1348d14](https://github.com/Abdo30004/discord-subscriptions/commit/1348d14c6c1121ba89abbb6c3dbea20d3cf1995d))
 - **shared**: add canonical domain events, amqp messaging, vault client, and health checker ([8aa978a](https://github.com/Abdo30004/discord-subscriptions/commit/8aa978aad617bc95907f4161957e4654a8d7dec2))
 
+### 🐛 Bug Fixes & Resilience
+
+- **changelog**: ignore changelog and release meta-commits during generation ([59e35d2](https://github.com/Abdo30004/discord-subscriptions/commit/59e35d23d38c94df680dd15050cc518c4ab172be))
+
 ### 🌐 Gateway, Traefik & Networking
 
 - **gateway**: configure traefik v3 reverse proxy and docker compose orchestration ([133cb4e](https://github.com/Abdo30004/discord-subscriptions/commit/133cb4eaf0ca49bc8d2721d757b915ca4275feb0))
