@@ -24,6 +24,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🐛 Bug Fixes & Resilience
 
+- **docs**: resolve syntax errors across all markdown mermaid diagrams ([312204b](https://github.com/Abdo30004/discord-subscriptions/commit/312204bacc4b671b19bc503fa4b5476dc678c681))
 - **changelog**: ignore changelog and release meta-commits during generation ([59e35d2](https://github.com/Abdo30004/discord-subscriptions/commit/59e35d23d38c94df680dd15050cc518c4ab172be))
 
 ### 🌐 Gateway, Traefik & Networking
@@ -45,6 +46,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🤖 CI/CD Automation
 
+- add automated mermaid diagram validator script and ci job ([bae2a68](https://github.com/Abdo30004/discord-subscriptions/commit/bae2a6895ead1d5898a5ac855199ebd1b43c0581))
 - configure multi-workspace go cache dependency pattern ([42900ba](https://github.com/Abdo30004/discord-subscriptions/commit/42900bab3969d4349e1312d6342fc25f35d3ca8e))
 
 ---
