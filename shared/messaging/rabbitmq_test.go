@@ -65,7 +65,7 @@ func TestRabbitMQClient_InitialConnectFailureAndResilience(t *testing.T) {
 		t.Fatal("client.Close() timed out")
 	}
 
-	if !called {
-		// Handler shouldn't have been called
+	if called {
+		t.Error("handler should not have been invoked while disconnected")
 	}
 }
