@@ -1,0 +1,43 @@
+name: CI - Markdown & Mermaid Diagrams
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.md'
+      - 'scripts/validate-diagrams.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci-diagrams.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**/*.md'
+      - 'scripts/validate-diagrams.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci-diagrams.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-diagrams:
+    name: Markdown Mermaid Diagrams Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Validation Dependencies
+        run: npm ci
+
+      - name: Validate All Mermaid Diagrams
+        run: node scripts/validate-diagrams.mjs

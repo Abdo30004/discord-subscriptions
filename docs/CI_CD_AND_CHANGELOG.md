@@ -8,17 +8,23 @@ This document outlines the Continuous Integration (CI), Continuous Deployment (C
 
 ```mermaid
 flowchart TD
-    subgraph Triggers ["Event Triggers"]
-        PPR["Pull Request / Push to main"]
+    subgraph Triggers ["Event Triggers (Path Filtered)"]
+        PushGo["Push: microservices/**, shared/**"]
+        PushFront["Push: frontend/**"]
+        PushBot["Push: bots/manager-bot/**"]
+        PushInfra["Push: docker-compose.yml, traefik/**, k8s/**"]
+        PushDiag["Push: **/*.md, scripts/validate-diagrams.mjs"]
+        PushChange["Push: CHANGELOG.md, cliff.toml"]
         TagPush["Git Tag Push v*<br/>Workflow Dispatch"]
     end
 
-    subgraph CIWorkflows ["GitHub Actions: CI (ci.yml)"]
-        GoSuite["Go Microservices & Shared<br/>go test -race, go build"]
-        BotSuite["Manager Bot<br/>npm ci, tsc build"]
-        FrontSuite["Next.js Frontend<br/>npm ci, next build"]
-        InfraSuite["Infra & Orchestration<br/>docker compose, kustomize"]
-        ChangelogCheck["Changelog Sync Check<br/>scripts/generate-changelog.mjs"]
+    subgraph CIWorkflows ["GitHub Actions: Targeted Workflows"]
+        GoSuite["ci-go.yml<br/>go test -race, go build"]
+        FrontSuite["ci-frontend.yml<br/>npm ci, next build"]
+        BotSuite["ci-manager-bot.yml<br/>npm ci, tsc build"]
+        InfraSuite["ci-infra.yml<br/>docker compose, kustomize"]
+        DiagSuite["ci-diagrams.yml<br/>validate-diagrams.mjs (Node 24)"]
+        ChangelogCheck["ci-changelog.yml<br/>scripts/generate-changelog.mjs"]
     end
 
     subgraph CDWorkflows ["GitHub Actions: Release & CD (release.yml)"]
@@ -27,7 +33,12 @@ flowchart TD
         GHCR["Build & Push Docker Images<br/>Matrix: 7 Services to ghcr.io"]
     end
 
-    PPR --> GoSuite & BotSuite & FrontSuite & InfraSuite & ChangelogCheck
+    PushGo --> GoSuite
+    PushFront --> FrontSuite
+    PushBot --> BotSuite
+    PushInfra --> InfraSuite
+    PushDiag --> DiagSuite
+    PushChange --> ChangelogCheck
 
     TagPush --> GenNotes
     GenNotes --> GHRelease
@@ -36,19 +47,20 @@ flowchart TD
 
 ---
 
-## 2. Continuous Integration Workflow (`ci.yml`)
+## 2. Targeted Continuous Integration Workflows
 
-The primary CI pipeline runs automatically on all pull requests and pushes to `main`. It features concurrency cancellation to save runner minutes on rapid commits.
+The CI pipeline is modularized into **6 focused workflows** that fire **only when relevant code paths are modified**, saving runner minutes and preventing unnecessary rebuilds:
 
-### Jobs & Verification Matrix
+### Workflows & Path Filter Matrix
 
-| Job | Environment | Tools | What it Verifies |
-| :--- | :--- | :--- | :--- |
-| **`test-go`** | `ubuntu-latest` | Go 1.23 | Runs all unit tests with race detection (`go test -race ./shared/... ./microservices/...`) and compiles all 5 Go service binaries. |
-| **`test-manager-bot`** | `ubuntu-latest` | Node.js 20 | Runs `npm ci` and compiles TypeScript bot code into `dist/` without type errors. |
-| **`test-frontend`** | `ubuntu-latest` | Node.js 20 | Runs `npm ci` and executes Next.js 16 Turbopack production compilation. |
-| **`validate-infra`** | `ubuntu-latest` | Docker & Kustomize | Runs `docker compose config --quiet` and `kubectl kustomize k8s/` to catch syntax errors before deployment. |
-| **`validate-changelog`** | `ubuntu-latest` | Node.js 20 | Verifies that `CHANGELOG.md` is strictly synchronized with repository commits via `npm run changelog:check`. |
+| Workflow File | Trigger Paths Filter | Environment | Tools | What it Verifies |
+| :--- | :--- | :--- | :--- | :--- |
+| **`ci-go.yml`** | `microservices/**`, `shared/**`, `go.work*`, `**/go.mod`, `**/go.sum` | `ubuntu-latest` | Go 1.23 | Unit tests with race detection (`go test -race ./shared/... ./microservices/...`) & builds 5 service binaries. |
+| **`ci-frontend.yml`** | `frontend/**` | `ubuntu-latest` | Node.js 20 | Runs `npm ci` and compiles Next.js 16 Turbopack production build. |
+| **`ci-manager-bot.yml`** | `bots/manager-bot/**` | `ubuntu-latest` | Node.js 20 | Runs `npm ci` and compiles TypeScript bot code into `dist/` without type errors. |
+| **`ci-infra.yml`** | `docker-compose.yml`, `traefik/**`, `k8s/**`, `scripts/init-databases.sql` | `ubuntu-latest` | Docker & Kustomize | Runs `docker compose config --quiet` and `kubectl kustomize k8s/` syntax validation. |
+| **`ci-diagrams.yml`** | `**/*.md`, `scripts/validate-diagrams.mjs`, `package*.json` | `ubuntu-latest` | Node.js 24 | Validates all Markdown Mermaid diagrams in headless JSDOM with Mermaid v12. |
+| **`ci-changelog.yml`** | `CHANGELOG.md`, `scripts/generate-changelog.mjs`, `cliff.toml` | `ubuntu-latest` | Node.js 20 | Verifies `CHANGELOG.md` is strictly synchronized with repository commits via `npm run changelog:check`. |
 
 ---
 

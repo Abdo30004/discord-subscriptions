@@ -1,0 +1,41 @@
+name: CI - Manager Bot
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'bots/manager-bot/**'
+      - '.github/workflows/ci-manager-bot.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'bots/manager-bot/**'
+      - '.github/workflows/ci-manager-bot.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-manager-bot:
+    name: Manager Bot TypeScript Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: bots/manager-bot/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: bots/manager-bot
+        run: npm ci
+
+      - name: Build TypeScript Manager Bot
+        working-directory: bots/manager-bot
+        run: npm run build

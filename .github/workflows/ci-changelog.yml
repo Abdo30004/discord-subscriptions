@@ -1,0 +1,40 @@
+name: CI - Changelog Sync
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'CHANGELOG.md'
+      - 'scripts/generate-changelog.mjs'
+      - 'cliff.toml'
+      - '.github/workflows/ci-changelog.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'CHANGELOG.md'
+      - 'scripts/generate-changelog.mjs'
+      - 'cliff.toml'
+      - '.github/workflows/ci-changelog.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-changelog:
+    name: Conventional Commits & Changelog Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code with History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify CHANGELOG.md is Synchronized
+        run: node scripts/generate-changelog.mjs --check

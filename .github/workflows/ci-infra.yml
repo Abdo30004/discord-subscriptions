@@ -1,0 +1,38 @@
+name: CI - Infrastructure & K8s
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docker-compose.yml'
+      - 'traefik/**'
+      - 'k8s/**'
+      - 'scripts/init-databases.sql'
+      - '.github/workflows/ci-infra.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docker-compose.yml'
+      - 'traefik/**'
+      - 'k8s/**'
+      - 'scripts/init-databases.sql'
+      - '.github/workflows/ci-infra.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-infra:
+    name: Infrastructure & K8s Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Configuration
+        run: docker compose config --quiet
+
+      - name: Validate Kubernetes Manifests via Kustomize
+        run: kubectl kustomize k8s/ > /dev/null
