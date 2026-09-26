@@ -233,11 +233,14 @@ services:
     environment:
       MANAGER_BOT_TOKEN: ${MANAGER_BOT_TOKEN:-}
       MANAGER_BOT_CLIENT_ID: ${MANAGER_BOT_CLIENT_ID:-}
-      CATALOG_SVC_URL: http://catalog-svc:8081
-      BILLING_SVC_URL: http://billing-svc:8082
-      DEPLOY_SVC_URL: http://deploy-svc:8083
-      MONITOR_SVC_URL: http://monitor-svc:8084
+      TRAEFIK_URL: http://traefik
+      GATEWAY_URL: http://traefik
+      CATALOG_SVC_URL: http://traefik
+      BILLING_SVC_URL: http://traefik
+      DEPLOY_SVC_URL: http://traefik
+      MONITOR_SVC_URL: http://traefik
       DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost}
+      HEALTH_PORT: 8085
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8085/health"]
       interval: 10s
@@ -245,13 +248,7 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      catalog-svc:
-        condition: service_healthy
-      billing-svc:
-        condition: service_healthy
-      deploy-svc:
-        condition: service_healthy
-      monitor-svc:
+      traefik:
         condition: service_healthy
     networks:
       - platform-net

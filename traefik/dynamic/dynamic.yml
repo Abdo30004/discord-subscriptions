@@ -82,7 +82,18 @@ http:
         - compress
       priority: 100
 
-    # 6. frontend: Web Dashboard & Storefront (Catch-all)
+    # 6. manager-bot: Health & Diagnostics Gateway
+    manager-bot-router:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/api/v1/manager-bot`)"
+      service: manager-bot-service
+      middlewares:
+        - cors-headers
+        - compress
+      priority: 100
+
+    # 7. frontend: Web Dashboard & Storefront (Catch-all)
     frontend-router:
       entryPoints:
         - web
@@ -118,6 +129,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://monitor-svc:8084"
+
+    manager-bot-service:
+      loadBalancer:
+        servers:
+          - url: "http://manager-bot:8085"
 
     frontend-service:
       loadBalancer:
