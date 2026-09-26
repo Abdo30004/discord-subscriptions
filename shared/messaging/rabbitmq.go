@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/discord-subscriptions/shared/events"
+	"github.com/discord-subscriptions/shared/telemetry"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -274,17 +275,20 @@ func (r *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey strin
 		schemaVersion = events.CurrentSchemaVersion
 	}
 
+	msgHeaders := amqp.Table{
+		HeaderSchemaVersion: schemaVersion,
+		HeaderRetryCount:    0,
+	}
+	telemetry.InjectAMQPTraceContext(ctx, msgHeaders)
+
 	msg := amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Timestamp:    time.Now().UTC(),
 		MessageId:    event.GetID(),
 		Type:         string(event.GetType()),
-		Headers: amqp.Table{
-			HeaderSchemaVersion: schemaVersion,
-			HeaderRetryCount:    0,
-		},
-		Body: body,
+		Headers:      msgHeaders,
+		Body:         body,
 	}
 
 	err = r.pubChannel.PublishWithContext(
@@ -422,7 +426,8 @@ func (r *RabbitMQClient) processDeliveries(ctx context.Context, deliveries <-cha
 				return
 			}
 
-			if err := handler(ctx, d.Body); err != nil {
+			msgCtx := telemetry.ExtractAMQPTraceContext(ctx, d.Headers)
+			if err := handler(msgCtx, d.Body); err != nil {
 				retryCount := getRetryCount(d.Headers)
 				r.logger.Error("handler error processing message",
 					slog.String("queue", queueName),
