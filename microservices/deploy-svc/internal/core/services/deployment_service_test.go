@@ -150,6 +150,12 @@ func (m *mockVault) PutBotToken(ctx context.Context, botID, token string) error 
 func (m *mockVault) GetBotToken(ctx context.Context, botID string) (string, error) {
 	return m.tokens[botID], nil
 }
+func (m *mockVault) PutUserTokens(ctx context.Context, userID, accessToken, refreshToken string, expiresAt time.Time) error {
+	return nil
+}
+func (m *mockVault) GetUserTokens(ctx context.Context, userID string) (string, string, time.Time, error) {
+	return "", "", time.Time{}, nil
+}
 
 type mockPublisher struct {
 	published []events.Event

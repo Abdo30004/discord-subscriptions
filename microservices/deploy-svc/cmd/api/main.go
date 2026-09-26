@@ -17,6 +17,7 @@ import (
 	"github.com/discord-subscriptions/deploy-svc/internal/adapters/repositories"
 	"github.com/discord-subscriptions/deploy-svc/internal/config"
 	"github.com/discord-subscriptions/deploy-svc/internal/core/services"
+	"github.com/discord-subscriptions/shared/auth"
 	"github.com/discord-subscriptions/shared/database"
 	"github.com/discord-subscriptions/shared/health"
 	"github.com/discord-subscriptions/shared/logger"
@@ -92,8 +93,9 @@ func main() {
 	}
 
 	// 8. Setup HTTP server
+	authValidator := auth.NewValidator(cfg.JWTSecret)
 	mux := http.NewServeMux()
-	handler := handlers.NewHTTPHandler(deployService, healthChecker, log)
+	handler := handlers.NewHTTPHandler(deployService, healthChecker, log, authValidator)
 	handler.RegisterRoutes(mux)
 
 	server := &http.Server{

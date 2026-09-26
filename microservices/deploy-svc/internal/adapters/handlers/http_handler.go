@@ -8,6 +8,7 @@ import (
 
 	"github.com/discord-subscriptions/deploy-svc/internal/core/domain"
 	"github.com/discord-subscriptions/deploy-svc/internal/core/ports"
+	"github.com/discord-subscriptions/shared/auth"
 	sharedErrors "github.com/discord-subscriptions/shared/errors"
 	"github.com/discord-subscriptions/shared/health"
 )
@@ -34,17 +35,19 @@ type AddPoolTokensRequest struct {
 }
 
 type HTTPHandler struct {
-	service ports.DeploymentService
-	checker *health.Checker
-	logger  *slog.Logger
+	service   ports.DeploymentService
+	checker   *health.Checker
+	logger    *slog.Logger
+	validator *auth.Validator
 }
 
 // NewHTTPHandler creates the HTTP REST controller for deployments.
-func NewHTTPHandler(service ports.DeploymentService, checker *health.Checker, logger *slog.Logger) *HTTPHandler {
+func NewHTTPHandler(service ports.DeploymentService, checker *health.Checker, logger *slog.Logger, validator *auth.Validator) *HTTPHandler {
 	return &HTTPHandler{
-		service: service,
-		checker: checker,
-		logger:  logger,
+		service:   service,
+		checker:   checker,
+		logger:    logger,
+		validator: validator,
 	}
 }
 
@@ -263,6 +266,18 @@ func (h *HTTPHandler) CheckPoolAvailable(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *HTTPHandler) AddPoolTokens(w http.ResponseWriter, r *http.Request) {
+	if h.validator != nil {
+		claims, err := h.validator.ExtractAndValidate(r)
+		if err != nil {
+			h.respondError(w, http.StatusUnauthorized, "Authentication required")
+			return
+		}
+		if !claims.IsAdmin && !claims.IsSuperAdmin {
+			h.respondError(w, http.StatusForbidden, "Administrator privileges required")
+			return
+		}
+	}
+
 	var req AddPoolTokensRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -288,6 +303,18 @@ func (h *HTTPHandler) AddPoolTokens(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) GetPoolStats(w http.ResponseWriter, r *http.Request) {
+	if h.validator != nil {
+		claims, err := h.validator.ExtractAndValidate(r)
+		if err != nil {
+			h.respondError(w, http.StatusUnauthorized, "Authentication required")
+			return
+		}
+		if !claims.IsAdmin && !claims.IsSuperAdmin {
+			h.respondError(w, http.StatusForbidden, "Administrator privileges required")
+			return
+		}
+	}
+
 	stats, err := h.service.GetPoolStats(r.Context())
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, err.Error())

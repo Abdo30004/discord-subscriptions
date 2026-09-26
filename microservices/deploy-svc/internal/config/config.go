@@ -15,6 +15,7 @@ type Config struct {
 	RabbitMQURL    string
 	VaultAddr      string
 	VaultToken     string
+	JWTSecret      string
 	DB             database.Config
 }
 
@@ -32,6 +33,7 @@ func Load() Config {
 		RabbitMQURL:    fmt.Sprintf("amqp://%s:%s@%s:%d/", rabbitUser, rabbitPass, rabbitHost, rabbitPort),
 		VaultAddr:      config.GetString("VAULT_ADDR", "http://localhost:8200"),
 		VaultToken:     config.GetString("VAULT_DEV_ROOT_TOKEN", "root"),
+		JWTSecret:      config.GetString("JWT_SECRET", "super-secret-development-jwt-key-replace-in-production"),
 		DB: database.Config{
 			Host:     config.GetString("POSTGRES_HOST", "localhost"),
 			Port:     config.GetInt("POSTGRES_PORT", 5432),
