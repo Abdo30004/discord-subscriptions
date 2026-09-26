@@ -16,6 +16,7 @@ import (
 	"github.com/discord-subscriptions/billing-svc/internal/adapters/repositories"
 	"github.com/discord-subscriptions/billing-svc/internal/config"
 	"github.com/discord-subscriptions/billing-svc/internal/core/services"
+	"github.com/discord-subscriptions/shared/auth"
 	"github.com/discord-subscriptions/shared/database"
 	"github.com/discord-subscriptions/shared/health"
 	"github.com/discord-subscriptions/shared/logger"
@@ -74,8 +75,9 @@ func main() {
 	}
 
 	// 6. Setup HTTP REST API
+	authValidator := auth.NewValidator(cfg.JWTSecret)
 	mux := http.NewServeMux()
-	handler := handlers.NewHTTPHandler(billingService, healthChecker, log)
+	handler := handlers.NewHTTPHandler(billingService, healthChecker, log, authValidator)
 	handler.RegisterRoutes(mux)
 
 	server := &http.Server{

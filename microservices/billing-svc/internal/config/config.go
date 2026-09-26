@@ -16,6 +16,7 @@ type Config struct {
 	PayPalClientSecret string
 	PayPalWebhookID    string
 	PayPalMode         string
+	JWTSecret          string
 	DB                 database.Config
 }
 
@@ -34,6 +35,7 @@ func Load() Config {
 		PayPalClientSecret: config.GetString("PAYPAL_CLIENT_SECRET", ""),
 		PayPalWebhookID:    config.GetString("PAYPAL_WEBHOOK_ID", ""),
 		PayPalMode:         config.GetString("PAYPAL_MODE", "sandbox"),
+		JWTSecret:          config.GetString("JWT_SECRET", "super-secret-development-jwt-key-replace-in-production"),
 		DB: database.Config{
 			Host:     config.GetString("POSTGRES_HOST", "localhost"),
 			Port:     config.GetInt("POSTGRES_PORT", 5432),

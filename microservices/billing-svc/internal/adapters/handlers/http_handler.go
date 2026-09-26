@@ -10,6 +10,7 @@ import (
 
 	"github.com/discord-subscriptions/billing-svc/internal/core/domain"
 	"github.com/discord-subscriptions/billing-svc/internal/core/ports"
+	"github.com/discord-subscriptions/shared/auth"
 	"github.com/discord-subscriptions/shared/health"
 	"github.com/google/uuid"
 )
@@ -48,16 +49,18 @@ type CreateVoucherRequest struct {
 }
 
 type HTTPHandler struct {
-	service ports.BillingService
-	checker *health.Checker
-	logger  *slog.Logger
+	service   ports.BillingService
+	checker   *health.Checker
+	logger    *slog.Logger
+	validator *auth.Validator
 }
 
-func NewHTTPHandler(service ports.BillingService, checker *health.Checker, logger *slog.Logger) *HTTPHandler {
+func NewHTTPHandler(service ports.BillingService, checker *health.Checker, logger *slog.Logger, validator *auth.Validator) *HTTPHandler {
 	return &HTTPHandler{
-		service: service,
-		checker: checker,
-		logger:  logger,
+		service:   service,
+		checker:   checker,
+		logger:    logger,
+		validator: validator,
 	}
 }
 
@@ -128,6 +131,18 @@ func (h *HTTPHandler) Redeem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) AdminGrant(w http.ResponseWriter, r *http.Request) {
+	if h.validator != nil {
+		claims, err := h.validator.ExtractAndValidate(r)
+		if err != nil {
+			h.respondError(w, http.StatusUnauthorized, "Authentication required")
+			return
+		}
+		if !claims.IsAdmin && !claims.IsSuperAdmin {
+			h.respondError(w, http.StatusForbidden, "Administrator privileges required")
+			return
+		}
+	}
+
 	var req AdminGrantRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -152,6 +167,18 @@ func (h *HTTPHandler) AdminGrant(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) CreatePromo(w http.ResponseWriter, r *http.Request) {
+	if h.validator != nil {
+		claims, err := h.validator.ExtractAndValidate(r)
+		if err != nil {
+			h.respondError(w, http.StatusUnauthorized, "Authentication required")
+			return
+		}
+		if !claims.IsAdmin && !claims.IsSuperAdmin {
+			h.respondError(w, http.StatusForbidden, "Administrator privileges required")
+			return
+		}
+	}
+
 	var req CreatePromoRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -186,6 +213,18 @@ func (h *HTTPHandler) CreatePromo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) CreateVoucher(w http.ResponseWriter, r *http.Request) {
+	if h.validator != nil {
+		claims, err := h.validator.ExtractAndValidate(r)
+		if err != nil {
+			h.respondError(w, http.StatusUnauthorized, "Authentication required")
+			return
+		}
+		if !claims.IsAdmin && !claims.IsSuperAdmin {
+			h.respondError(w, http.StatusForbidden, "Administrator privileges required")
+			return
+		}
+	}
+
 	var req CreateVoucherRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body")
