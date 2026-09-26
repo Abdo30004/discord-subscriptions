@@ -11,24 +11,24 @@ The platform allows Discord server owners to purchase, provision, manage, and mo
 
 ```mermaid
 flowchart TB
-    subgraph Clients [Clients & Interfaces]
-        Frontend["Next.js 16 Dashboard & Store\n(Port 3000)"]
-        ManagerBot["TypeScript Discord Manager Bot\n(Discord Gateway)"]
+    subgraph Clients ["Clients & Interfaces"]
+        Frontend["Next.js 16 Dashboard & Store<br/>Port 3000"]
+        ManagerBot["TypeScript Discord Manager Bot<br/>Discord Gateway"]
     end
 
-    subgraph CoreServices [Golang Microservices (Clean Architecture)]
-        AuthSvc["auth-svc :8080\n(OAuth2, JWT, Users)"]
-        CatalogSvc["catalog-svc :8081\n(Templates, Plans, Pricing)"]
-        BillingSvc["billing-svc :8082\n(Subscriptions, Promos, Vouchers)"]
-        DeploySvc["deploy-svc :8083\n(K8s Orchestrator, Token Pool)"]
-        MonitorSvc["monitor-svc :8084\n(Health Poller, Telemetry)"]
+    subgraph CoreServices ["Golang Microservices (Clean Architecture)"]
+        AuthSvc["auth-svc :8080<br/>OAuth2, JWT, Users"]
+        CatalogSvc["catalog-svc :8081<br/>Templates, Plans, Pricing"]
+        BillingSvc["billing-svc :8082<br/>Subscriptions, Promos, Vouchers"]
+        DeploySvc["deploy-svc :8083<br/>K8s Orchestrator, Token Pool"]
+        MonitorSvc["monitor-svc :8084<br/>Health Poller, Telemetry"]
     end
 
-    subgraph Infrastructure [Data & Messaging Infrastructure]
-        Postgres[("PostgreSQL 16\n(Database-per-Service)")]
-        RabbitMQ[["RabbitMQ 3.13\n(Topic Exchange: discord.events)"]]
-        Vault[("HashiCorp Vault 1.16\n(Bot Tokens & Secrets)")]
-        K8sCluster[("Kubernetes Cluster\n(Isolated Bot Pods)")]
+    subgraph Infrastructure ["Data & Messaging Infrastructure"]
+        Postgres[("PostgreSQL 16<br/>Database-per-Service")]
+        RabbitMQ[["RabbitMQ 3.13<br/>Topic Exchange: discord.events"]]
+        Vault[("HashiCorp Vault 1.16<br/>Bot Tokens & Secrets")]
+        K8sCluster[("Kubernetes Cluster<br/>Isolated Bot Pods")]
     end
 
     Frontend --> AuthSvc & CatalogSvc & BillingSvc & DeploySvc & MonitorSvc

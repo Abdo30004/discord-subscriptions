@@ -15,7 +15,7 @@ The frontend is built on modern web standards with performance and accessibility
 
 ```mermaid
 flowchart TD
-    subgraph Routes [App Router Routes (src/app)]
+    subgraph Routes ["App Router Routes (src/app)"]
         Landing["/ (Landing Page)"]
         Store["/store (Catalog & Plans)"]
         Checkout["/checkout (Purchase Flow)"]
@@ -24,12 +24,12 @@ flowchart TD
         Setup["/setup (Bot Invite & Token Setup)"]
     end
 
-    subgraph ClientLib [Client Services (src/lib)]
+    subgraph ClientLib ["Client Services (src/lib)"]
         API["api.ts (Typed REST Client)"]
         Types["types.ts (Domain Interfaces)"]
     end
 
-    subgraph Microservices [Backend Microservices]
+    subgraph Microservices ["Backend Microservices"]
         Auth["auth-svc :8080"]
         Catalog["catalog-svc :8081"]
         Billing["billing-svc :8082"]

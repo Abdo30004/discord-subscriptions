@@ -30,29 +30,29 @@ This documentation suite covers every layer of the platform: microservices, mult
 
 ```mermaid
 flowchart TB
-    subgraph Clients [Clients & Interaction Channels]
-        Browser["Web Dashboard & Store\n(Next.js 16 Turbopack :3000)"]
-        DiscordClient["Discord Client / Guild Members\n(Discord Gateway)"]
+    subgraph Clients ["Clients & Interaction Channels"]
+        Browser["Web Dashboard & Store<br/>Next.js 16 Turbopack :3000"]
+        DiscordClient["Discord Client / Guild Members<br/>Discord Gateway"]
     end
 
-    subgraph Edge [Edge & Interfaces]
-        ManagerBot["Discord Manager Bot\n(Node.js / Discord.js v14)"]
-        APIEndpoints["Internal REST APIs\n(:8080 - :8084)"]
+    subgraph Edge ["Edge & Interfaces"]
+        ManagerBot["Discord Manager Bot<br/>Node.js / Discord.js v14"]
+        APIEndpoints["Internal REST APIs<br/>:8080 - :8084"]
     end
 
-    subgraph Services [Golang Microservices (Clean Architecture)]
-        AuthSvc["auth-svc :8080\nOAuth2 & JWT Sessions"]
-        CatalogSvc["catalog-svc :8081\nBot Templates & Plans"]
-        BillingSvc["billing-svc :8082\nSubscriptions, Promos, Vouchers"]
-        DeploySvc["deploy-svc :8083\nK8s Engine & Token Pool"]
-        MonitorSvc["monitor-svc :8084\nHealth Poller & Telemetry"]
+    subgraph Services ["Golang Microservices (Clean Architecture)"]
+        AuthSvc["auth-svc :8080<br/>OAuth2 & JWT Sessions"]
+        CatalogSvc["catalog-svc :8081<br/>Bot Templates & Plans"]
+        BillingSvc["billing-svc :8082<br/>Subscriptions, Promos, Vouchers"]
+        DeploySvc["deploy-svc :8083<br/>K8s Engine & Token Pool"]
+        MonitorSvc["monitor-svc :8084<br/>Health Poller & Telemetry"]
     end
 
-    subgraph Infrastructure [Data, Security & Messaging]
-        Postgres[("PostgreSQL 16\n(auth, catalog, billing, deploy, monitor DBs)")]
-        RabbitMQ[["RabbitMQ 3.13\n(Exchange: discord.events)"]]
-        Vault[("HashiCorp Vault 1.16\n(Encrypted Bot Tokens)")]
-        K8s[("Kubernetes Cluster\n(Isolated Bot Pods: bot-{guildId}-{depShortId})")]
+    subgraph Infrastructure ["Data, Security & Messaging"]
+        Postgres[("PostgreSQL 16<br/>auth, catalog, billing DBs")]
+        RabbitMQ[["RabbitMQ 3.13<br/>Exchange: discord.events"]]
+        Vault[("HashiCorp Vault 1.16<br/>Encrypted Bot Tokens")]
+        K8s["Kubernetes Cluster<br/>Isolated Bot Pods: bot-guildId-depShortId"]
     end
 
     Browser --> APIEndpoints

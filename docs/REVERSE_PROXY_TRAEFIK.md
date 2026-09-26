@@ -15,10 +15,10 @@ With Traefik acting as the unified edge gateway:
 
 ```mermaid
 flowchart TD
-    Client["Client Browser / Discord Client\n(http://localhost or https://bots.example.com)"]
-    Dashboard["Traefik Dashboard\n(http://localhost:8090)"]
+    Client["Client Browser / Discord Client<br/>http://localhost or https://bots.example.com"]
+    Dashboard["Traefik Dashboard<br/>http://localhost:8090"]
 
-    subgraph TraefikGateway [Traefik v3 Edge Gateway (:80 / :443)]
+    subgraph TraefikGateway ["Traefik v3 Edge Gateway (:80 / :443)"]
         RouterAuth["Router: /api/v1/auth"]
         RouterCatalog["Router: /api/v1/catalog & /api/v1/bots"]
         RouterBilling["Router: /api/v1/billing, /subscriptions, /promos, /vouchers"]
@@ -31,7 +31,7 @@ flowchart TD
         MWRateLimit["Middleware: 100 req/s Rate Limit"]
     end
 
-    subgraph UpstreamServices [Internal Platform Network (platform-net)]
+    subgraph UpstreamServices ["Internal Platform Network (platform-net)"]
         AuthSvc["auth-svc :8080"]
         CatalogSvc["catalog-svc :8081"]
         BillingSvc["billing-svc :8082"]

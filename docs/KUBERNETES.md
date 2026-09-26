@@ -10,35 +10,35 @@ The platform separates system workloads from customer bot containers using two d
 
 ```mermaid
 flowchart TB
-    subgraph PlatformNS [Namespace: platform]
+    subgraph PlatformNS ["Namespace: platform"]
         direction TB
-        Ingress["NGINX Ingress Controller\n(bots.example.com)"]
-        UI["frontend\n(Next.js 16 :3000)"]
-        Manager["manager-bot\n(Discord.js Gateway)"]
+        Ingress["NGINX Ingress Controller<br/>bots.example.com"]
+        UI["frontend<br/>Next.js 16 :3000"]
+        Manager["manager-bot<br/>Discord.js Gateway"]
 
-        subgraph CoreServices [Core Go Microservices]
+        subgraph CoreServices ["Core Go Microservices"]
             Auth["auth-svc :8080"]
             Catalog["catalog-svc :8081"]
             Billing["billing-svc :8082"]
-            Deploy["deploy-svc :8083\n(ServiceAccount: deploy-svc-sa)"]
+            Deploy["deploy-svc :8083<br/>ServiceAccount: deploy-svc-sa"]
             Monitor["monitor-svc :8084"]
         end
 
-        subgraph DataTier [Storage & Messaging Tier]
-            Postgres[("PostgreSQL 16\n(5 Databases)")]
-            RabbitMQ[["RabbitMQ 3.13\n(Exchange: discord.events)"]]
-            Vault[("HashiCorp Vault 1.16\n(Token Secrets)")]
+        subgraph DataTier ["Storage & Messaging Tier"]
+            Postgres[("PostgreSQL 16<br/>5 Databases")]
+            RabbitMQ[["RabbitMQ 3.13<br/>Exchange: discord.events"]]
+            Vault[("HashiCorp Vault 1.16<br/>Token Secrets")]
         end
 
         Ingress --> UI & CoreServices
         CoreServices --> DataTier
     end
 
-    subgraph BotNS [Namespace: discord-bots (Isolated)]
+    subgraph BotNS ["Namespace: discord-bots (Isolated)"]
         direction TB
-        PodA["Pod: bot-11223344-49182309\n(Music Bot - Dedicated)"]
-        PodB["Pod: bot-11223344-7c2a11b0\n(Music Bot - VIP Lounge)"]
-        PodC["Pod: bot-99887766-f901cb3d\n(Mod Bot - Aegis Guard)"]
+        PodA["Pod: bot-11223344-49182309<br/>Music Bot - Dedicated"]
+        PodB["Pod: bot-11223344-7c2a11b0<br/>Music Bot - VIP Lounge"]
+        PodC["Pod: bot-99887766-f901cb3d<br/>Mod Bot - Aegis Guard"]
     end
 
     Deploy -->|K8s API: Provision / Scale| BotNS

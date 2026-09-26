@@ -8,23 +8,23 @@ This document outlines the Continuous Integration (CI), Continuous Deployment (C
 
 ```mermaid
 flowchart TD
-    subgraph Triggers [Event Triggers]
+    subgraph Triggers ["Event Triggers"]
         PPR["Pull Request / Push to main"]
-        TagPush["Git Tag Push (v*)\nWorkflow Dispatch"]
+        TagPush["Git Tag Push v*<br/>Workflow Dispatch"]
     end
 
-    subgraph CIWorkflows [GitHub Actions: CI (ci.yml)]
-        GoSuite["Go Microservices & Shared\n(go test -race, go build)"]
-        BotSuite["Manager Bot\n(npm ci, tsc build)"]
-        FrontSuite["Next.js Frontend\n(npm ci, next build)"]
-        InfraSuite["Infra & Orchestration\n(docker compose, kustomize)"]
-        ChangelogCheck["Changelog Sync Check\n(node scripts/generate-changelog.mjs --check)"]
+    subgraph CIWorkflows ["GitHub Actions: CI (ci.yml)"]
+        GoSuite["Go Microservices & Shared<br/>go test -race, go build"]
+        BotSuite["Manager Bot<br/>npm ci, tsc build"]
+        FrontSuite["Next.js Frontend<br/>npm ci, next build"]
+        InfraSuite["Infra & Orchestration<br/>docker compose, kustomize"]
+        ChangelogCheck["Changelog Sync Check<br/>scripts/generate-changelog.mjs"]
     end
 
-    subgraph CDWorkflows [GitHub Actions: Release & CD (release.yml)]
-        GenNotes["Generate Release Notes\nfrom Conventional Commits"]
-        GHRelease["Create GitHub Release\n(softprops/action-gh-release)"]
-        GHCR["Build & Push Docker Images\nMatrix: 7 Services to ghcr.io"]
+    subgraph CDWorkflows ["GitHub Actions: Release & CD (release.yml)"]
+        GenNotes["Generate Release Notes<br/>from Conventional Commits"]
+        GHRelease["Create GitHub Release<br/>softprops/action-gh-release"]
+        GHCR["Build & Push Docker Images<br/>Matrix: 7 Services to ghcr.io"]
     end
 
     PPR --> GoSuite & BotSuite & FrontSuite & InfraSuite & ChangelogCheck

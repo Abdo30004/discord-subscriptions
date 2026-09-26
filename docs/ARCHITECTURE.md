@@ -10,33 +10,33 @@ The platform operates as a distributed system designed for high availability, mu
 
 ```mermaid
 flowchart TD
-    subgraph Users [End Users & Discord Servers]
+    subgraph Users ["End Users & Discord Servers"]
         GuildAdmin["Server Owner / Admin"]
         DiscordGuild["Discord Guild / Community"]
     end
 
-    subgraph Presentation [Presentation Layer]
-        WebUI["Next.js 16 Web Dashboard\n(React 19 / Turbopack)"]
-        MgrBot["Central Discord Manager Bot\n(Discord.js v14 Gateway)"]
+    subgraph Presentation ["Presentation Layer"]
+        WebUI["Next.js 16 Web Dashboard<br/>React 19 / Turbopack"]
+        MgrBot["Central Discord Manager Bot<br/>Discord.js v14 Gateway"]
     end
 
-    subgraph GatewayLayer [API Gateway & Routing]
+    subgraph GatewayLayer ["API Gateway & Routing"]
         AuthProxy["Auth & Routing Gateway"]
     end
 
-    subgraph Services [Core Microservices (Go Clean Architecture)]
-        AuthSvc["auth-svc\nPort: 8080\nOAuth2 / JWT"]
-        CatalogSvc["catalog-svc\nPort: 8081\nPlans & Pricing"]
-        BillingSvc["billing-svc\nPort: 8082\nSubscriptions & Vouchers"]
-        DeploySvc["deploy-svc\nPort: 8083\nK8s & Token Pool"]
-        MonitorSvc["monitor-svc\nPort: 8084\nTelemetry & Watchdog"]
+    subgraph Services ["Core Microservices (Go Clean Architecture)"]
+        AuthSvc["auth-svc<br/>Port: 8080<br/>OAuth2 / JWT"]
+        CatalogSvc["catalog-svc<br/>Port: 8081<br/>Plans & Pricing"]
+        BillingSvc["billing-svc<br/>Port: 8082<br/>Subscriptions & Vouchers"]
+        DeploySvc["deploy-svc<br/>Port: 8083<br/>K8s & Token Pool"]
+        MonitorSvc["monitor-svc<br/>Port: 8084<br/>Telemetry & Watchdog"]
     end
 
-    subgraph EventLayer [Asynchronous Event Bus]
-        RabbitMQ[["RabbitMQ Topic Exchange\ndiscord.events"]]
+    subgraph EventLayer ["Asynchronous Event Bus"]
+        RabbitMQ[["RabbitMQ Topic Exchange<br/>discord.events"]]
     end
 
-    subgraph Storage [Databases (PostgreSQL 16)]
+    subgraph Storage ["Databases (PostgreSQL 16)"]
         DBAuth[("auth_db")]
         DBCatalog[("catalog_db")]
         DBBilling[("billing_db")]
@@ -44,14 +44,14 @@ flowchart TD
         DBMonitor[("monitor_db")]
     end
 
-    subgraph SecurityVault [Secrets Security Perimeter]
-        Vault[("HashiCorp Vault 1.16\nKV v2 Engine")]
+    subgraph SecurityVault ["Secrets Security Perimeter"]
+        Vault[("HashiCorp Vault 1.16<br/>KV v2 Engine")]
     end
 
-    subgraph ContainerCompute [Kubernetes Cluster / Bot Fleet]
-        Pod1["Pod: bot-11223344-a1b2\n(Music Bot - Dedicated)"]
-        Pod2["Pod: bot-11223344-c3d4\n(Music Bot - VIP Room)"]
-        Pod3["Pod: bot-99887766-e5f6\n(Mod Bot - Defense)"]
+    subgraph ContainerCompute ["Kubernetes Cluster / Bot Fleet"]
+        Pod1["Pod: bot-11223344-a1b2<br/>Music Bot - Dedicated"]
+        Pod2["Pod: bot-11223344-c3d4<br/>Music Bot - VIP Room"]
+        Pod3["Pod: bot-99887766-e5f6<br/>Mod Bot - Defense"]
     end
 
     GuildAdmin -->|HTTPS Browser| WebUI

@@ -10,17 +10,17 @@ The platform adheres to Cloud-Native and Kubernetes best practices by separating
 
 ```mermaid
 flowchart TD
-    subgraph TrafficFlow [Traffic Routing & Orchestration]
+    subgraph TrafficFlow ["Traffic Routing & Orchestration"]
         K8sKubelet["Kubernetes Kubelet / Docker Engine"]
         TraefikRouter["Traefik Reverse Proxy / K8s Ingress"]
     end
 
-    subgraph Probes [Probe Endpoints]
-        LivezProbe["Liveness Probe (/livez)\nProcess Alive, No Deadlocks"]
-        ReadyzProbe["Readiness & Deep Health (/health, /readyz)\nDependencies Verified (DB, MQ, Vault)"]
+    subgraph Probes ["Probe Endpoints"]
+        LivezProbe["Liveness Probe /livez<br/>Process Alive, No Deadlocks"]
+        ReadyzProbe["Readiness & Deep Health<br/>Dependencies Verified: DB, MQ, Vault"]
     end
 
-    subgraph ServiceCore [Microservice Core & Dependencies]
+    subgraph ServiceCore ["Microservice Core & Dependencies"]
         ServiceProcess["Microservice Process"]
         PostgresDB[("PostgreSQL")]
         RabbitMQConn[["RabbitMQ"]]
@@ -33,9 +33,9 @@ flowchart TD
     K8sKubelet -->|Polls every 5s| ReadyzProbe
     TraefikRouter -->|Routes only if Healthy| ReadyzProbe
 
-    ReadyzProbe -->|db.PingContext()| PostgresDB
-    ReadyzProbe -->|conn.IsConnected()| RabbitMQConn
-    ReadyzProbe -->|vault.Ping()| VaultCluster
+    ReadyzProbe -->|"db.PingContext()"| PostgresDB
+    ReadyzProbe -->|"conn.IsConnected()"| RabbitMQConn
+    ReadyzProbe -->|"vault.Ping()"| VaultCluster
 ```
 
 ### Liveness vs. Readiness Probes

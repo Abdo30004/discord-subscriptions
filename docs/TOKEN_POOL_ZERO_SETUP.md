@@ -127,14 +127,14 @@ sequenceDiagram
     participant Vault as HashiCorp Vault
     participant DAPI as Discord REST API (/users/@me)
 
-    Admin->>Discord: /bot avatar url: "https://i.imgur.com/cyber.png"
+    Admin->>Discord: Slash command /bot avatar
     Discord->>Mgr: Interaction Dispatched
     Mgr->>Deploy: POST /api/v1/deployments/{id}/customize
     Deploy->>Vault: Read bot token for deployment
-    Deploy->>DAPI: PATCH /api/v10/users/@me<br/>Headers: Authorization: Bot {token}<br/>Body: { "avatar": "data:image/png;base64,..." }
+    Deploy->>DAPI: PATCH /api/v10/users/@me (Update avatar payload)
     DAPI-->>Deploy: HTTP 200 OK (Avatar Updated)
     Deploy-->>Mgr: HTTP 200 OK
-    Mgr-->>Discord: Ephemeral Success: "Bot avatar successfully updated!"
+    Mgr-->>Discord: Ephemeral Success: Bot avatar successfully updated!
 ```
 
 ### Endpoints Supporting Customization:

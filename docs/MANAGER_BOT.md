@@ -10,19 +10,19 @@ The Manager Bot lives in customer Discord guilds to provide instant access to fl
 
 ```mermaid
 flowchart TD
-    subgraph DiscordUI [Discord Guild Client]
+    subgraph DiscordUI ["Discord Guild Client"]
         AdminUser["Server Administrator"]
         SlashCmd["Slash Command: /status, /restart, /bot, /redeem"]
         Dropdown["StringSelectMenu: Bot Fleet Selector"]
     end
 
-    subgraph ManagerBotCore [Manager Bot (TypeScript / Discord.js v14)]
+    subgraph ManagerBotCore ["Manager Bot (TypeScript / Discord.js v14)"]
         Gateway["Discord Gateway Client (src/index.ts)"]
         CmdRouter["Command Router (src/commands/)"]
         APIClient["Backend REST Client (src/api/client.ts)"]
     end
 
-    subgraph BackendServices [Platform Microservices]
+    subgraph BackendServices ["Platform Microservices"]
         CatalogSvc["catalog-svc :8081"]
         BillingSvc["billing-svc :8082"]
         DeploySvc["deploy-svc :8083"]
