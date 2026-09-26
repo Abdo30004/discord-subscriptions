@@ -17,6 +17,8 @@ import {
   CreateVoucherRequest,
   PromoCode,
   VoucherCode,
+  AdminUser,
+  AdminSearchUser,
 } from './types';
 
 // Traefik reverse proxy handles path prefix routing to all upstream microservices.
@@ -67,22 +69,65 @@ export async function authenticateWithDiscord(code: string, redirectUri?: string
 }
 
 /**
- * Generates an instant development session for local testing.
+ * Retrieves all platform administrators (Super Admins and appointed admins).
  */
-export async function devLogin(userId?: string, username?: string): Promise<AuthSession> {
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/dev-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      user_id: userId || '123456789012345678',
-      username: username || 'DevAdmin',
-    }),
+export async function listAdmins(token: string): Promise<AdminUser[]> {
+  const res = await fetch(`${API_BASE.auth}/api/v1/auth/admins`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
   });
   const body = await res.json();
   if (!res.ok) {
-    throw new Error(body.error || 'Development login failed');
+    throw new Error(body.error || 'Failed to list administrators');
   }
   return body.data;
+}
+
+/**
+ * Searches registered users by Discord snowflake ID or username.
+ */
+export async function searchUsers(token: string, query: string): Promise<AdminSearchUser[]> {
+  const res = await fetch(`${API_BASE.auth}/api/v1/auth/users/search?q=${encodeURIComponent(query)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.error || 'Failed to search users');
+  }
+  return body.data;
+}
+
+/**
+ * Promotes a registered Discord user to platform administrator (Super Admin only).
+ */
+export async function promoteAdmin(token: string, discordId: string): Promise<void> {
+  const res = await fetch(`${API_BASE.auth}/api/v1/auth/admins`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ discord_id: discordId }),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.error || 'Failed to promote user to administrator');
+  }
+}
+
+/**
+ * Revokes administrator privileges from an appointed admin (Super Admin only).
+ */
+export async function revokeAdmin(token: string, discordId: string): Promise<void> {
+  const res = await fetch(`${API_BASE.auth}/api/v1/auth/admins/${encodeURIComponent(discordId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.error || 'Failed to revoke administrator privileges');
+  }
 }
 
 /**

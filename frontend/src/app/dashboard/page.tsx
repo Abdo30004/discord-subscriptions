@@ -50,8 +50,7 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activatedSubId = searchParams.get('activated');
-
-  const { user, guilds, selectedGuild, selectGuild, loginWithDiscord, loginAsDev, isLoading } = useAuth();
+  const { user, guilds, selectedGuild, selectGuild, loginWithDiscord, isLoading } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !user) {

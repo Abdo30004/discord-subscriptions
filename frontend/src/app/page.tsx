@@ -18,7 +18,6 @@ import {
   Lock,
   Loader2,
   LogIn,
-  Code,
 } from 'lucide-react';
 import { getCatalogBots } from '@/lib/api';
 import { BotTemplate } from '@/lib/types';
@@ -41,7 +40,7 @@ export default function HomePage() {
 function HomeContent() {
   const searchParams = useSearchParams();
   const authParam = searchParams.get('auth');
-  const { user, loginWithDiscord, loginAsDev } = useAuth();
+  const { user, loginWithDiscord } = useAuth();
 
   const [bots, setBots] = useState<BotTemplate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -81,17 +80,10 @@ function HomeContent() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => loginAsDev()}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center gap-1.5"
-            >
-              <Code className="w-3.5 h-3.5 text-emerald-400" /> Dev Login
-            </button>
-            <button
-              type="button"
               onClick={() => loginWithDiscord()}
-              className="px-3.5 py-1.5 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-bold transition-all shadow flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-bold transition-all shadow flex items-center gap-2"
             >
-              <LogIn className="w-3.5 h-3.5" /> Sign In
+              <LogIn className="w-4 h-4" /> Sign In with Discord
             </button>
           </div>
         </div>

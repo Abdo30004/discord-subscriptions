@@ -16,6 +16,11 @@ import {
   Key,
   Loader2,
   UserCheck,
+  Users,
+  UserPlus,
+  UserMinus,
+  Crown,
+  Search,
 } from 'lucide-react';
 import {
   getTokenPoolStats,
@@ -23,20 +28,32 @@ import {
   createPromoCode,
   createVoucherCode,
   adminGrantSubscription,
+  listAdmins,
+  searchUsers,
+  promoteAdmin,
+  revokeAdmin,
 } from '@/lib/api';
-import { TokenPoolStats } from '@/lib/types';
+import { TokenPoolStats, AdminUser, AdminSearchUser } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, token, isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth();
 
   const [stats, setStats] = useState<TokenPoolStats>({});
-  const [activeTab, setActiveTab] = useState<'pool' | 'promo' | 'voucher' | 'grant'>('pool');
+  const [activeTab, setActiveTab] = useState<'pool' | 'promo' | 'voucher' | 'grant' | 'staff'>('pool');
   const [loading, setLoading] = useState(false);
   const [fetchingStats, setFetchingStats] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Staff & Admin Management State
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [fetchingAdmins, setFetchingAdmins] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<AdminSearchUser[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
   // Add Token State
   const [newBotType, setNewBotType] = useState('music');
@@ -74,6 +91,72 @@ export default function AdminPage() {
     }
   };
 
+  const fetchAdmins = async () => {
+    if (!token) return;
+    setFetchingAdmins(true);
+    try {
+      const res = await listAdmins(token);
+      setAdmins(res);
+    } catch (err: any) {
+      console.error('Failed to load administrators:', err);
+    } finally {
+      setFetchingAdmins(false);
+    }
+  };
+
+  const handleSearchUsers = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!token || !userSearchQuery.trim()) return;
+    setSearchingUsers(true);
+    setError(null);
+    try {
+      const res = await searchUsers(token, userSearchQuery.trim());
+      setSearchResults(res);
+    } catch (err: any) {
+      setError(err.message || 'Failed searching users');
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const handlePromote = async (targetId: string) => {
+    if (!token) return;
+    setActionInProgress(targetId);
+    setError(null);
+    try {
+      await promoteAdmin(token, targetId);
+      setMessage(`User ${targetId} successfully promoted to administrator.`);
+      await fetchAdmins();
+      setSearchResults((prev) =>
+        prev.map((u) => (u.id === targetId ? { ...u, is_admin: true } : u))
+      );
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to promote administrator');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleRevoke = async (targetId: string) => {
+    if (!token) return;
+    setActionInProgress(targetId);
+    setError(null);
+    try {
+      await revokeAdmin(token, targetId);
+      setMessage(`Administrator privileges revoked for user ${targetId}.`);
+      await fetchAdmins();
+      setSearchResults((prev) =>
+        prev.map((u) => (u.id === targetId ? { ...u, is_admin: false } : u))
+      );
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to revoke administrator');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
       router.replace('/?auth=admin_required');
@@ -85,6 +168,12 @@ export default function AdminPage() {
       fetchStats();
     }
   }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (user && isAdmin && activeTab === 'staff') {
+      fetchAdmins();
+    }
+  }, [user, isAdmin, activeTab]);
 
   const handleAddToken = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,7 +323,7 @@ export default function AdminPage() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex rounded-xl bg-slate-900 p-1 border border-slate-800 max-w-xl">
+      <div className="flex flex-wrap sm:flex-nowrap rounded-xl bg-slate-900 p-1 border border-slate-800 max-w-2xl gap-1">
         <button
           type="button"
           onClick={() => setActiveTab('pool')}
@@ -270,6 +359,15 @@ export default function AdminPage() {
           }`}
         >
           <UserCheck className="w-3.5 h-3.5" /> Admin Grant
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('staff')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'staff' ? 'bg-blurple text-white shadow-md' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" /> Staff & Admins
         </button>
       </div>
 
@@ -584,6 +682,254 @@ export default function AdminPage() {
               Grant Subscription Instantly
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Tab 5: Staff & Administrator Management */}
+      {activeTab === 'staff' && (
+        <div className="space-y-8">
+          {/* Header Card / Explanation */}
+          <div className="p-6 rounded-2xl bg-card border border-card-border space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-blurple" /> Platform Administrator Access
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Super Admins are defined in the server environment (<code className="text-blurple">SUPER_ADMIN_DISCORD_IDS</code>). Appointed administrators are promoted directly from registered Discord accounts.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Your Role:</span>
+                {isSuperAdmin ? (
+                  <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <Crown className="w-3.5 h-3.5 text-amber-400" /> Super Administrator
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Appointed Administrator
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Super Admin Promotion Search Panel */}
+          {isSuperAdmin ? (
+            <div className="p-6 rounded-2xl bg-card border border-card-border space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-emerald-400" /> Promote User to Administrator
+              </h3>
+              <p className="text-xs text-slate-400">
+                Search for any user who has authenticated with Discord at least once by Discord Snowflake ID or Username.
+              </p>
+
+              <form onSubmit={handleSearchUsers} className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Search by Discord Snowflake ID or Username..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blurple"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={searchingUsers || !userSearchQuery.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-blurple hover:bg-blurple-hover disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  {searchingUsers ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  Search Users
+                </button>
+              </form>
+
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="mt-4 border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800/60 bg-slate-900/50">
+                  {searchResults.map((searchUser) => (
+                    <div
+                      key={searchUser.id}
+                      className="p-3.5 flex items-center justify-between gap-4 hover:bg-slate-800/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center text-xs font-bold text-white uppercase shrink-0">
+                          {searchUser.avatar ? (
+                            <img
+                              src={`https://cdn.discordapp.com/avatars/${searchUser.id}/${searchUser.avatar}.png`}
+                              alt={searchUser.username}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>{searchUser.username.slice(0, 2)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white">
+                              {searchUser.global_name || searchUser.username}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">@{searchUser.username}</span>
+                            {searchUser.is_super_admin && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Super Admin
+                              </span>
+                            )}
+                            {searchUser.is_admin && !searchUser.is_super_admin && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-mono">Discord ID: {searchUser.id}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        {searchUser.is_super_admin ? (
+                          <span className="text-xs text-slate-500 italic">Configured via ENV</span>
+                        ) : searchUser.is_admin ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRevoke(searchUser.id)}
+                            disabled={actionInProgress === searchUser.id}
+                            className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {actionInProgress === searchUser.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <UserMinus className="w-3.5 h-3.5" />
+                            )}
+                            Revoke Admin
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handlePromote(searchUser.id)}
+                            disabled={actionInProgress === searchUser.id}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {actionInProgress === searchUser.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <UserPlus className="w-3.5 h-3.5" />
+                            )}
+                            Promote to Admin
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 flex items-center gap-3">
+              <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+              <span>
+                You are logged in as an Appointed Administrator. Only Super Administrators (<code className="text-slate-300">SUPER_ADMIN_DISCORD_IDS</code>) have permission to promote or revoke administrators.
+              </span>
+            </div>
+          )}
+
+          {/* Current Administrators Table / Grid */}
+          <div className="p-6 rounded-2xl bg-card border border-card-border space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-blurple" /> Current Platform Administrators ({admins.length})
+              </h3>
+              <button
+                type="button"
+                onClick={fetchAdmins}
+                disabled={fetchingAdmins}
+                className="text-xs text-blurple hover:text-blurple-hover font-semibold transition-colors flex items-center gap-1"
+              >
+                {fetchingAdmins ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Refresh List'}
+              </button>
+            </div>
+
+            {fetchingAdmins ? (
+              <div className="py-12 flex justify-center items-center gap-2 text-xs text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin text-blurple" /> Loading administrator roster...
+              </div>
+            ) : admins.length === 0 ? (
+              <p className="text-xs text-slate-400 py-6 text-center">No administrators registered.</p>
+            ) : (
+              <div className="border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800/60 bg-slate-900/50">
+                {admins.map((admin) => (
+                  <div
+                    key={admin.id}
+                    className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center text-xs font-bold text-white uppercase shrink-0">
+                        {admin.avatar ? (
+                          <img
+                            src={`https://cdn.discordapp.com/avatars/${admin.id}/${admin.avatar}.png`}
+                            alt={admin.username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{admin.username.slice(0, 2)}</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-white">
+                            {admin.global_name || admin.username}
+                          </span>
+                          <span className="text-xs text-slate-400 font-mono">@{admin.username}</span>
+                          {admin.is_super_admin ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                              <Crown className="w-3 h-3 text-amber-400" /> Super Admin
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              Appointed Admin
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex flex-wrap items-center gap-3">
+                          <span>Discord ID: {admin.id}</span>
+                          {admin.admin_promoted_at && (
+                            <span>Promoted: {new Date(admin.admin_promoted_at).toLocaleDateString()}</span>
+                          )}
+                          {admin.admin_promoted_by && (
+                            <span>By: {admin.admin_promoted_by}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {admin.is_super_admin ? (
+                        <span className="text-xs text-slate-500 italic px-2 py-1 bg-slate-800/50 rounded-lg">
+                          Immutable (ENV)
+                        </span>
+                      ) : isSuperAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => handleRevoke(admin.id)}
+                          disabled={actionInProgress === admin.id}
+                          className="px-3.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          {actionInProgress === admin.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <UserMinus className="w-3.5 h-3.5" />
+                          )}
+                          Revoke Privileges
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-500 italic">Protected</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -4,11 +4,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   UserProfile,
   DiscordGuild,
-  AuthSession,
 } from '@/lib/types';
 import {
   getDiscordOAuthUrl,
-  devLogin as apiDevLogin,
   getCurrentUser,
   getUserGuilds,
 } from '@/lib/api';
@@ -19,10 +17,10 @@ interface AuthContextType {
   guilds: DiscordGuild[];
   selectedGuild: DiscordGuild | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isLoading: boolean;
   error: string | null;
   loginWithDiscord: (redirectUri?: string) => Promise<void>;
-  loginAsDev: (userId?: string, username?: string) => Promise<void>;
   logout: () => void;
   selectGuild: (guild: DiscordGuild) => void;
   refreshSession: () => Promise<void>;
@@ -97,19 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginAsDev = async (userId?: string, username?: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const session: AuthSession = await apiDevLogin(userId, username);
-      await setAuthSession(session.token);
-    } catch (err: any) {
-      setError(err.message || 'Dev login failed');
-      setIsLoading(false);
-      throw err;
-    }
-  };
-
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SELECTED_GUILD_KEY);
@@ -131,14 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAdmin = Boolean(
-    user && (
-      user.is_admin ||
-      user.username?.toLowerCase() === 'devadmin' ||
-      user.id === '123456789012345678' ||
-      user.email?.toLowerCase().includes('admin')
-    )
-  );
+  const isSuperAdmin = Boolean(user && user.is_super_admin);
+  const isAdmin = Boolean(user && (user.is_admin || user.is_super_admin));
 
   return (
     <AuthContext.Provider
@@ -148,10 +127,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         guilds,
         selectedGuild,
         isAdmin,
+        isSuperAdmin,
         isLoading,
         error,
         loginWithDiscord,
-        loginAsDev,
         logout,
         selectGuild,
         refreshSession,

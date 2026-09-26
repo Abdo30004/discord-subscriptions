@@ -12,7 +12,6 @@ import {
   LogOut,
   LogIn,
   Server,
-  Code,
   Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,7 +26,6 @@ export default function Navbar() {
     isAdmin,
     isLoading,
     loginWithDiscord,
-    loginAsDev,
     logout,
   } = useAuth();
 
@@ -145,18 +143,10 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => loginAsDev()}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-all flex items-center gap-1.5"
-                title="Quick login for local testing"
-              >
-                <Code className="w-3.5 h-3.5 text-emerald-400" /> Dev Login
-              </button>
-              <button
-                type="button"
                 onClick={() => loginWithDiscord()}
-                className="px-3.5 py-1.5 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold transition-all shadow-sm flex items-center gap-2"
               >
-                <LogIn className="w-3.5 h-3.5" /> Login with Discord
+                <LogIn className="w-4 h-4" /> Login with Discord
               </button>
             </div>
           )}

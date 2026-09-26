@@ -35,7 +35,7 @@ export default function CheckoutPage() {
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, guilds, loginWithDiscord, loginAsDev } = useAuth();
+  const { user, guilds, loginWithDiscord } = useAuth();
 
   const botId = searchParams.get('bot') || 'bot-music-01';
   const botType = searchParams.get('botType') || 'music';
@@ -209,13 +209,6 @@ function CheckoutContent() {
               className="px-4 py-2 rounded-xl bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold"
             >
               Connect Discord
-            </button>
-            <button
-              type="button"
-              onClick={() => loginAsDev()}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700"
-            >
-              Dev Login
             </button>
           </div>
         </div>

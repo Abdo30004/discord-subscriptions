@@ -37,7 +37,7 @@ export default function StorePage() {
 function StoreContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, guilds, selectedGuild, selectGuild, loginWithDiscord, loginAsDev } = useAuth();
+  const { user, guilds, selectedGuild, selectGuild, loginWithDiscord } = useAuth();
 
   const [bots, setBots] = useState<BotTemplate[]>([]);
   const [selectedBot, setSelectedBot] = useState<BotTemplate | null>(null);
@@ -255,16 +255,9 @@ function StoreContent() {
                   <button
                     type="button"
                     onClick={() => loginWithDiscord()}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5"
+                    className="w-full py-1.5 px-3 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5"
                   >
                     <LogIn className="w-3.5 h-3.5" /> Sign in with Discord
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => loginAsDev()}
-                    className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700"
-                  >
-                    Dev Login
                   </button>
                 </div>
               </div>

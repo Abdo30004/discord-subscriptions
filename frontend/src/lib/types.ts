@@ -148,6 +148,32 @@ export interface UserProfile {
   avatar?: string;
   email?: string;
   is_admin?: boolean;
+  is_super_admin?: boolean;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  global_name?: string;
+  avatar?: string;
+  email?: string;
+  is_admin: boolean;
+  is_super_admin: boolean;
+  admin_promoted_at?: string;
+  admin_promoted_by?: string;
+  created_at: string;
+  last_login_at: string;
+}
+
+export interface AdminSearchUser {
+  id: string;
+  username: string;
+  global_name?: string;
+  avatar?: string;
+  email?: string;
+  is_admin: boolean;
+  is_super_admin: boolean;
+  last_login_at: string;
 }
 
 export interface AuthSession {
