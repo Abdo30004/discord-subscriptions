@@ -11,6 +11,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **changelog**: add automated conventional commits changelog generator and tooling ([aa06c7d](https://github.com/Abdo30004/discord-subscriptions/commit/aa06c7de10c6ef0a4e70dc614727cb9bd260b80b))
 - **ci**: implement comprehensive github actions ci pipeline and release cd workflow ([4ac6c77](https://github.com/Abdo30004/discord-subscriptions/commit/4ac6c77ea81803eef9877fca9773c56947589ee3))
 - **frontend**: build next.js 16 turbopack dashboard, subscription store, checkout, and admin panel ([bb0693b](https://github.com/Abdo30004/discord-subscriptions/commit/bb0693b5355e437919ccac1b21c4962c96919275))
 - **manager-bot**: implement typescript discord.js v14 manager bot with interactive fleet controls ([e0ae3b3](https://github.com/Abdo30004/discord-subscriptions/commit/e0ae3b30f9513738b278bf139d216b074fad4f3e))
@@ -35,6 +36,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
+- document ci/cd pipelines, automated changelog system, and agent rules ([52d54f3](https://github.com/Abdo30004/discord-subscriptions/commit/52d54f386e6bbc2b264fc1990641c3012cfd119a))
 - provide comprehensive architectural specifications, runbooks, and agent rules ([5a19147](https://github.com/Abdo30004/discord-subscriptions/commit/5a19147acfd9ca24131b693f18ce341431c423a9))
 
 ---
