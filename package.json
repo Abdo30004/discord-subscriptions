@@ -10,7 +10,8 @@
     "build:bot": "npm --prefix bots/manager-bot run build",
     "build:frontend": "npm --prefix frontend run build",
     "validate:docker": "docker compose config --quiet",
-    "validate:k8s": "kubectl kustomize k8s/"
+    "validate:k8s": "kubectl kustomize k8s/",
+    "validate:diagrams": "node scripts/validate-diagrams.mjs"
   },
   "keywords": [
     "discord",
@@ -23,5 +24,9 @@
     "kubernetes"
   ],
   "author": "Abdo30004",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "jsdom": "^30.1.1",
+    "mermaid": "^12.0.0"
+  }
 }

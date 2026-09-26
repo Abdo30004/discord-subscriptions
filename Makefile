@@ -30,6 +30,9 @@ validate-docker:
 validate-k8s:
 	kubectl kustomize k8s/
 
+validate-diagrams:
+	node scripts/validate-diagrams.mjs
+
 changelog:
 	node scripts/generate-changelog.mjs
 
@@ -38,6 +41,7 @@ changelog-check:
 
 build-all: build build-bot build-frontend
 
-check-all: test build-all validate-docker validate-k8s changelog-check
+check-all: test build-all validate-docker validate-k8s validate-diagrams changelog-check
+
 
 

@@ -117,3 +117,22 @@ jobs:
 
       - name: Verify CHANGELOG.md is Synchronized
         run: node scripts/generate-changelog.mjs --check
+
+  validate-diagrams:
+    name: Markdown Mermaid Diagrams Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Validation Dependencies
+        run: npm install -D mermaid jsdom
+
+      - name: Validate All Mermaid Diagrams
+        run: node scripts/validate-diagrams.mjs
+
