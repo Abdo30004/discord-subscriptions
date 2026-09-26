@@ -11,6 +11,8 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **services**: wire prometheus metrics endpoint and outbound circuit breaking ([bb9e096](https://github.com/Abdo30004/discord-subscriptions/commit/bb9e0962fbfd3e01535212f627e98bfa05a6402f))
+- **shared**: add prometheus telemetry, w3c trace context, and circuit breaker ([df2cda6](https://github.com/Abdo30004/discord-subscriptions/commit/df2cda65ca5785a37e9ed5334a8d48b18b5a3a75))
 - **services**: integrate consumer deduplication and domain idempotency guards ([62f5cf7](https://github.com/Abdo30004/discord-subscriptions/commit/62f5cf713a62fbe51fbcc9eb48e0e6c01c34f31a))
 - **shared**: add rabbitmq auto-reconnect, dlx/dlq retries, event versioning and deduplicator ([af896ff](https://github.com/Abdo30004/discord-subscriptions/commit/af896ff438315ede39c9ac6e596c0b4a74fc98d7))
 - **frontend**: integrate httponly cookie sessions and pass auth tokens to admin APIs ([957f10d](https://github.com/Abdo30004/discord-subscriptions/commit/957f10d345ef71b358c3d5ae1a14908f0f59f889))
@@ -42,11 +44,13 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🌐 Gateway, Traefik & Networking
 
+- **gateway**: add traefik service-circuit-breaker middleware ([8fe3f9c](https://github.com/Abdo30004/discord-subscriptions/commit/8fe3f9c62d9f366e73292a2220ea7fb0131b2de6))
 - **gateway**: route all services through traefik with zero host port exports ([04df03a](https://github.com/Abdo30004/discord-subscriptions/commit/04df03a4450c07d4014e81f0017e8983b10ac0bd))
 - **gateway**: configure traefik v3 reverse proxy and docker compose orchestration ([133cb4e](https://github.com/Abdo30004/discord-subscriptions/commit/133cb4eaf0ca49bc8d2721d757b915ca4275feb0))
 
 ### ☁️ Kubernetes & Cloud Orchestration
 
+- **k8s**: add pod disruption budgets, hpa scaling, and prometheus monitoring ([72b82a1](https://github.com/Abdo30004/discord-subscriptions/commit/72b82a165b0bf08c705c094d2f39ba773ae797bc))
 - **k8s**: define cloud-native kubernetes manifests, rbac, network policies, and ingress ([998747c](https://github.com/Abdo30004/discord-subscriptions/commit/998747cd5528eaa786c6753e208a14409cbfe91f))
 
 ### 🏗️ Infrastructure & Persistence
@@ -58,6 +62,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
+- add production operations runbook and update phase 3 resolutions ([41a895a](https://github.com/Abdo30004/discord-subscriptions/commit/41a895a3394ab87fad8f9e5bab4a4f0dc9298a39))
 - update Phase 2 resilience and per-service database users specifications ([a2d2b85](https://github.com/Abdo30004/discord-subscriptions/commit/a2d2b85b77b3ac950f66c2f74dc5fcfdbf688782))
 - update database schemas, api references, and security audit report ([ae4a11a](https://github.com/Abdo30004/discord-subscriptions/commit/ae4a11aede0525e2035d2cee5e3893d37cda178a))
 - document super admin hierarchy, admin promotion endpoints, and staff panel ([8ddbf57](https://github.com/Abdo30004/discord-subscriptions/commit/8ddbf575d75fca4dbe46c364355bce32017bd280))
