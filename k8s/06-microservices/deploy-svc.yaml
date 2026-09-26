@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-svc
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: deploy-svc
+    app.kubernetes.io/component: orchestrator
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: deploy-svc
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: deploy-svc
+    spec:
+      serviceAccountName: deploy-svc-sa
+      containers:
+        - name: deploy-svc
+          image: ghcr.io/discord-subscriptions/deploy-svc:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8083
+          env:
+            - name: DEPLOY_SVC_PORT
+              value: "8083"
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: ENV
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: LOG_LEVEL
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: POSTGRES_PORT
+            - name: DEPLOY_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: DEPLOY_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: POSTGRES_PASSWORD
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: RABBITMQ_PORT
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: RABBITMQ_PASS
+            - name: VAULT_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: VAULT_ADDR
+            - name: VAULT_DEV_ROOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: VAULT_DEV_ROOT_TOKEN
+            - name: BOTS_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: BOTS_NAMESPACE
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-svc
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: deploy-svc
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
+  selector:
+    app.kubernetes.io/name: deploy-svc

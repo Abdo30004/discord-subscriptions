@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isolate-customer-bots
+  namespace: discord-bots
+  labels:
+    app.kubernetes.io/name: bot-network-policy
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: discord-bot
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow health probe traffic strictly from monitor-svc in the 'platform' namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: platform
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: monitor-svc
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # 1. Allow standard DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # 2. Allow outbound HTTPS connections to Discord Gateway & external APIs
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # 3. Explicitly BLOCKS direct TCP connections to platform databases (Postgres 5432, RabbitMQ 5672, Vault 8200)

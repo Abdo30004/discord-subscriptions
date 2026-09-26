@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+  labels:
+    name: platform
+    app.kubernetes.io/part-of: discord-subscriptions
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: discord-bots
+  labels:
+    name: discord-bots
+    app.kubernetes.io/part-of: discord-subscriptions
+    pod-security.kubernetes.io/enforce: baseline

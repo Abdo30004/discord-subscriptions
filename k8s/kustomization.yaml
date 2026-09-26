@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 00-namespaces.yaml
+  - 01-rbac.yaml
+  - 02-configmaps.yaml
+  - 03-secrets.yaml
+  - 04-storage.yaml
+  - 05-infrastructure/postgres.yaml
+  - 05-infrastructure/rabbitmq.yaml
+  - 05-infrastructure/vault.yaml
+  - 06-microservices/auth-svc.yaml
+  - 06-microservices/catalog-svc.yaml
+  - 06-microservices/billing-svc.yaml
+  - 06-microservices/deploy-svc.yaml
+  - 06-microservices/monitor-svc.yaml
+  - 07-applications/frontend.yaml
+  - 07-applications/manager-bot.yaml
+  - 08-ingress.yaml
+  - 09-network-policy.yaml

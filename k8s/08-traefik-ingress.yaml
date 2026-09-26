@@ -1,0 +1,179 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: platform-cors
+  namespace: platform
+spec:
+  headers:
+    accessControlAllowMethods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "PATCH"
+      - "DELETE"
+      - "OPTIONS"
+    accessControlAllowHeaders:
+      - "*"
+    accessControlAllowOriginList:
+      - "*"
+    accessControlMaxAge: 100
+    addVaryHeader: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: platform-compress
+  namespace: platform
+spec:
+  compress: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: platform-ingressroute
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: traefik-ingressroute
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    # 1. auth-svc
+    - match: PathPrefix(`/api/v1/auth`)
+      kind: Rule
+      services:
+        - name: auth-svc
+          port: 8080
+      middlewares:
+        - name: platform-cors
+        - name: platform-compress
+
+    # 2. catalog-svc
+    - match: PathPrefix(`/api/v1/catalog`) || PathPrefix(`/api/v1/bots`)
+      kind: Rule
+      services:
+        - name: catalog-svc
+          port: 8081
+      middlewares:
+        - name: platform-cors
+        - name: platform-compress
+
+    # 3. billing-svc
+    - match: PathPrefix(`/api/v1/billing`) || PathPrefix(`/api/v1/subscriptions`) || PathPrefix(`/api/v1/promos`) || PathPrefix(`/api/v1/vouchers`) || PathPrefix(`/api/v1/webhooks`)
+      kind: Rule
+      services:
+        - name: billing-svc
+          port: 8082
+      middlewares:
+        - name: platform-cors
+        - name: platform-compress
+
+    # 4. deploy-svc
+    - match: PathPrefix(`/api/v1/deployments`) || PathPrefix(`/api/v1/deploy`) || PathPrefix(`/api/v1/token-pool`)
+      kind: Rule
+      services:
+        - name: deploy-svc
+          port: 8083
+      middlewares:
+        - name: platform-cors
+        - name: platform-compress
+
+    # 5. monitor-svc
+    - match: PathPrefix(`/api/v1/targets`) || PathPrefix(`/api/v1/monitor`)
+      kind: Rule
+      services:
+        - name: monitor-svc
+          port: 8084
+      middlewares:
+        - name: platform-cors
+        - name: platform-compress
+
+    # 6. frontend (Catch-all)
+    - match: PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: frontend
+          port: 3000
+      middlewares:
+        - name: platform-compress
+      priority: 1
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform-traefik-ingress
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: platform-traefik-ingress
+    app.kubernetes.io/part-of: discord-subscriptions
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: bots.example.com
+      http:
+        paths:
+          - path: /api/v1/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-svc
+                port:
+                  number: 8080
+          - path: /api/v1/catalog
+            pathType: Prefix
+            backend:
+              service:
+                name: catalog-svc
+                port:
+                  number: 8081
+          - path: /api/v1/subscriptions
+            pathType: Prefix
+            backend:
+              service:
+                name: billing-svc
+                port:
+                  number: 8082
+          - path: /api/v1/promos
+            pathType: Prefix
+            backend:
+              service:
+                name: billing-svc
+                port:
+                  number: 8082
+          - path: /api/v1/vouchers
+            pathType: Prefix
+            backend:
+              service:
+                name: billing-svc
+                port:
+                  number: 8082
+          - path: /api/v1/deployments
+            pathType: Prefix
+            backend:
+              service:
+                name: deploy-svc
+                port:
+                  number: 8083
+          - path: /api/v1/token-pool
+            pathType: Prefix
+            backend:
+              service:
+                name: deploy-svc
+                port:
+                  number: 8083
+          - path: /api/v1/targets
+            pathType: Prefix
+            backend:
+              service:
+                name: monitor-svc
+                port:
+                  number: 8084
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000

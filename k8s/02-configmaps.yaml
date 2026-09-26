@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: platform
+  labels:
+    app.kubernetes.io/part-of: discord-subscriptions
+data:
+  ENV: "production"
+  LOG_LEVEL: "info"
+  POSTGRES_HOST: "postgres.platform.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  AUTH_DB_NAME: "auth_db"
+  CATALOG_DB_NAME: "catalog_db"
+  BILLING_DB_NAME: "billing_db"
+  DEPLOY_DB_NAME: "deploy_db"
+  MONITOR_DB_NAME: "monitor_db"
+  RABBITMQ_HOST: "rabbitmq.platform.svc.cluster.local"
+  RABBITMQ_PORT: "5672"
+  VAULT_ADDR: "http://vault.platform.svc.cluster.local:8200"
+  BOTS_NAMESPACE: "discord-bots"
+  CATALOG_SVC_URL: "http://catalog-svc.platform.svc.cluster.local:8081"
+  BILLING_SVC_URL: "http://billing-svc.platform.svc.cluster.local:8082"
+  DEPLOY_SVC_URL: "http://deploy-svc.platform.svc.cluster.local:8083"
+  MONITOR_SVC_URL: "http://monitor-svc.platform.svc.cluster.local:8084"
+  MONITOR_POLL_INTERVAL: "15s"
+  MONITOR_WORKERS: "10"
