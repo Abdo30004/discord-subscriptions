@@ -49,6 +49,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
+- document super admin hierarchy, admin promotion endpoints, and staff panel ([8ddbf57](https://github.com/Abdo30004/discord-subscriptions/commit/8ddbf575d75fca4dbe46c364355bce32017bd280))
 - update .env.example with comprehensive platform config and add env sync rule ([877f4bc](https://github.com/Abdo30004/discord-subscriptions/commit/877f4bc25e01683c1e75aa7cd727f2f056a6b8d1))
 - **frontend**: update route guards and navigation visibility specification ([82f51de](https://github.com/Abdo30004/discord-subscriptions/commit/82f51de27a97738c0fe94614825305148bde231f))
 - **frontend**: update architecture and route documentation for real api and auth flow ([892a402](https://github.com/Abdo30004/discord-subscriptions/commit/892a402c6aac8574356ca1c5c26fe87d90c034f5))
