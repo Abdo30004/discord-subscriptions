@@ -10,6 +10,7 @@ import {
   getCurrentUser,
   getUserGuilds,
   logoutUser,
+  refreshAuthSession,
 } from '@/lib/api';
 
 interface AuthContextType {
@@ -129,8 +130,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshSession = async () => {
-    if (token) {
-      await setAuthSession(token);
+    try {
+      const refreshed = await refreshAuthSession();
+      if (refreshed?.token) {
+        await setAuthSession(refreshed.token);
+      } else {
+        const userProfile = await getCurrentUser();
+        const userGuilds = await getUserGuilds().catch(() => []);
+        setUser(userProfile);
+        setGuilds(userGuilds);
+      }
+    } catch (err) {
+      console.warn('Session refresh failed:', err);
     }
   };
 

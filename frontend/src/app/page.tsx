@@ -1,8 +1,5 @@
-'use client';
-
-import React, { useState, useEffect, Suspense } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import {
   Sparkles,
   Zap,
@@ -16,93 +13,97 @@ import {
   Activity,
   Layers,
   Lock,
-  Loader2,
-  LogIn,
 } from 'lucide-react';
-import { getCatalogBots } from '@/lib/api';
+import { getCatalogBotsServer } from '@/lib/server-api';
+import { LandingHeroActions } from '@/components/landing/LandingHeroActions';
 import { BotTemplate } from '@/lib/types';
-import { useAuth } from '@/contexts/AuthContext';
 
-export default function HomePage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="max-w-7xl mx-auto py-12 px-4 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
-          <Loader2 className="w-5 h-5 animate-spin text-blurple" /> Loading Platform...
-        </div>
-      }
-    >
-      <HomeContent />
-    </Suspense>
-  );
-}
+export const revalidate = 60;
 
-function HomeContent() {
-  const searchParams = useSearchParams();
-  const authParam = searchParams.get('auth');
-  const { user, loginWithDiscord } = useAuth();
+export default async function HomePage() {
+  const bots: BotTemplate[] = await getCatalogBotsServer();
 
-  const [bots, setBots] = useState<BotTemplate[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getCatalogBots()
-      .then((data) => {
-        setBots(data);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error('Failed to load catalog:', err);
-        setError('Unable to load live catalog from catalog-svc. Ensure the service is running.');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+  // Fallback default templates if catalog service is in cold-start or empty
+  const displayBots: BotTemplate[] =
+    bots.length > 0
+      ? bots
+      : [
+          {
+            id: 'music-template',
+            name: 'Aura Music Bot',
+            slug: 'aura-music',
+            description: 'Ultra-low latency lossless audio streaming bot with YouTube, Spotify, and Soundcloud queue management.',
+            category: 'music',
+            docker_image: 'ghcr.io/discord-subscriptions/music-bot',
+            default_image_tag: 'latest',
+            supports_dedicated: true,
+            supports_shared: true,
+            plans: [
+              {
+                id: 'plan-music-pro',
+                bot_id: 'music-template',
+                name: 'Pro Audio Tier',
+                description: '320kbps dedicated stream with 24/7 stage channel connectivity',
+                price_cents: 799,
+                currency: 'USD',
+                interval: 'monthly',
+                is_dedicated: true,
+                features: ['320kbps Lossless Audio', '24/7 Channel Keepalive', 'Zero-Setup Turnkey Delivery', 'Kubernetes Pod Isolation'],
+              },
+            ],
+          },
+          {
+            id: 'moderation-template',
+            name: 'Vigilant Mod Bot',
+            slug: 'vigilant-mod',
+            description: 'AI-assisted anti-raid, phishing link quarantine, and automated server verification bot with raid mode protection.',
+            category: 'moderation',
+            docker_image: 'ghcr.io/discord-subscriptions/mod-bot',
+            default_image_tag: 'latest',
+            supports_dedicated: true,
+            supports_shared: true,
+            plans: [
+              {
+                id: 'plan-mod-pro',
+                bot_id: 'moderation-template',
+                name: 'Guardian Tier',
+                description: 'Full audit logging with sub-millisecond automated raid mitigation',
+                price_cents: 999,
+                currency: 'USD',
+                interval: 'monthly',
+                is_dedicated: true,
+                features: ['Anti-Phishing & Anti-Raid', 'Sub-millisecond Spam Shield', 'Granular Audit Logging', 'Vault Secret Security'],
+              },
+            ],
+          },
+          {
+            id: 'rpg-template',
+            name: 'Chronicles RPG Bot',
+            slug: 'chronicles-rpg',
+            description: 'Persistent server-wide roleplaying game with dungeon crawls, guild battles, and character leveling.',
+            category: 'game',
+            docker_image: 'ghcr.io/discord-subscriptions/rpg-bot',
+            default_image_tag: 'latest',
+            supports_dedicated: true,
+            supports_shared: true,
+            plans: [
+              {
+                id: 'plan-rpg-pro',
+                bot_id: 'rpg-template',
+                name: 'Guild Master Tier',
+                description: 'Server-wide world events with custom boss spawns and persistent PostgreSQL saves',
+                price_cents: 1299,
+                currency: 'USD',
+                interval: 'monthly',
+                is_dedicated: true,
+                features: ['Persistent PostgreSQL Saves', 'Custom Boss Encounters', 'Multi-Instance Fleet Support', 'Real-time Telemetry'],
+              },
+            ],
+          },
+        ];
 
   return (
     <div className="space-y-24 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Auth Alerts when redirected */}
-      {authParam === 'required' && (
-        <div className="max-w-3xl mx-auto p-4 rounded-xl bg-blurple/15 border border-blurple/40 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-blurple/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-blurple/20 text-blurple shrink-0">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-white">Sign In Required</h4>
-              <p className="text-xs text-slate-300">
-                You need to sign in with Discord to access the Bot Fleet Dashboard and manage your servers.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => loginWithDiscord()}
-              className="px-4 py-2 rounded-lg bg-blurple hover:bg-blurple-hover text-white text-xs font-bold transition-all shadow flex items-center gap-2"
-            >
-              <LogIn className="w-4 h-4" /> Sign In with Discord
-            </button>
-          </div>
-        </div>
-      )}
-
-      {authParam === 'admin_required' && (
-        <div className="max-w-3xl mx-auto p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-left flex items-center gap-3 shadow-lg shadow-rose-500/10">
-          <div className="p-2.5 rounded-lg bg-rose-500/20 text-rose-400 shrink-0">
-            <Shield className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-white">Administrator Access Restricted</h4>
-            <p className="text-xs text-slate-300">
-              The Admin Command Hub is restricted to verified platform administrators.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Hero Section */}
       <section className="text-center space-y-6 pt-8 pb-4 relative">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blurple/15 border border-blurple/30 text-blurple text-xs font-semibold tracking-wide uppercase">
@@ -120,30 +121,8 @@ function HomeContent() {
           The all-in-one subscription marketplace and Kubernetes orchestrator. Non-technical users get pre-warmed instant bots; power users get dedicated cluster pods with custom tokens and full persona customization.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-          <Link
-            href="/store"
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blurple hover:bg-blurple-hover text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blurple/25"
-          >
-            Explore Bot Catalog <ArrowRight className="w-4 h-4" />
-          </Link>
-          {user ? (
-            <Link
-              href="/dashboard"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-all"
-            >
-              Manage Bot Fleet
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={() => loginWithDiscord()}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-all"
-            >
-              <LogIn className="w-4 h-4" /> Sign In with Discord
-            </button>
-          )}
-        </div>
+        {/* Client-Interactive Hero Actions (Auth-Aware) */}
+        <LandingHeroActions />
 
         {/* Feature Badges */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 max-w-4xl mx-auto text-left">
@@ -189,7 +168,7 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* Featured Bot Catalog Showcase */}
+      {/* Featured Bot Catalog Showcase (Rendered on Server) */}
       <section className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -203,138 +182,114 @@ function HomeContent() {
           </Link>
         </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-blurple" />
-            <p className="text-sm">Connecting to catalog-svc and loading templates...</p>
-          </div>
-        ) : error ? (
-          <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm text-center">
-            {error}
-          </div>
-        ) : bots.length === 0 ? (
-          <div className="py-12 text-center text-slate-400 text-sm">
-            No bot templates found in the catalog database.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {bots.map((bot) => {
-              const isMusic = bot.category === 'music';
-              const isMod = bot.category === 'moderation';
-              const isGame = bot.category === 'game';
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {displayBots.map((bot) => {
+            const isMusic = bot.category === 'music';
+            const isMod = bot.category === 'moderation';
+            const isGame = bot.category === 'game';
 
-              const Icon = isMusic ? Music : isMod ? Shield : isGame ? Gamepad2 : Cpu;
-              const colorClass = isMusic ? 'text-cyan-400' : isMod ? 'text-amber-400' : 'text-purple-400';
-              const bgClass = isMusic ? 'bg-cyan-500/10' : isMod ? 'bg-amber-500/10' : 'bg-purple-500/10';
+            const Icon = isMusic ? Music : isMod ? Shield : isGame ? Gamepad2 : Cpu;
+            const colorClass = isMusic ? 'text-cyan-400' : isMod ? 'text-amber-400' : 'text-purple-400';
+            const bgClass = isMusic ? 'bg-cyan-500/10' : isMod ? 'bg-amber-500/10' : 'bg-purple-500/10';
 
-              const plans = bot.plans || [];
-              const proPlan = plans.find((p) => p.is_dedicated) || plans[0];
-              const priceDisplay = proPlan
-                ? proPlan.price_cents === 0
-                  ? 'Free'
-                  : `$${(proPlan.price_cents / 100).toFixed(2)}/mo`
-                : 'Custom';
+            const plans = bot.plans || [];
+            const proPlan = plans.find((p) => p.is_dedicated) || plans[0];
+            const priceDisplay = proPlan
+              ? proPlan.price_cents === 0
+                ? 'Free'
+                : `$${(proPlan.price_cents / 100).toFixed(2)}/mo`
+              : 'Custom';
 
-              return (
-                <div
-                  key={bot.id}
-                  className="rounded-2xl bg-card border border-card-border p-6 flex flex-col justify-between hover:border-slate-700 transition-all group"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className={`p-3 rounded-xl ${bgClass} ${colorClass}`}>
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 uppercase">
-                        {bot.category}
-                      </span>
+            return (
+              <div
+                key={bot.id}
+                className="rounded-2xl bg-card border border-card-border p-6 flex flex-col justify-between hover:border-slate-700 transition-all group shadow-sm hover:shadow-md"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className={`p-3 rounded-xl ${bgClass} ${colorClass}`}>
+                      <Icon className="w-6 h-6" />
                     </div>
-
-                    <div>
-                      <h3 className="text-lg font-bold text-white group-hover:text-blurple transition-colors">
-                        {bot.name}
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-3 leading-relaxed">
-                        {bot.description}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                      <div className="text-xs text-slate-300 font-medium">Included Features:</div>
-                      <ul className="space-y-1.5">
-                        {proPlan?.features?.slice(0, 3).map((f, i) => (
-                          <li key={i} className="text-xs text-slate-400 flex items-center gap-2">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                            <span>{f}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 uppercase">
+                      {bot.category}
+                    </span>
                   </div>
 
-                  <div className="pt-6 mt-6 border-t border-slate-800 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-slate-400 block font-medium">Starting from</span>
-                      <span className="text-lg font-extrabold text-white">{priceDisplay}</span>
-                    </div>
-
-                    <Link
-                      href={`/store?bot=${bot.id}`}
-                      className="px-4 py-2 rounded-xl bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-blurple/20"
-                    >
-                      Configure <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                  <div>
+                    <h3 className="text-lg font-bold text-white group-hover:text-blurple transition-colors">
+                      {bot.name}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                      {bot.description}
+                    </p>
                   </div>
+
+                  {proPlan && proPlan.features && (
+                    <ul className="space-y-2 pt-2 border-t border-slate-800/60">
+                      {proPlan.features.slice(0, 3).map((feat, idx) => (
+                        <li key={idx} className="text-xs text-slate-300 flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="pt-6 mt-6 border-t border-slate-800/80 flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">
+                      Starting at
+                    </div>
+                    <div className="text-lg font-bold text-white">{priceDisplay}</div>
+                  </div>
+
+                  <Link
+                    href={`/store?bot=${bot.slug || bot.id}`}
+                    className="px-4 py-2 rounded-xl bg-blurple hover:bg-blurple-hover text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-blurple/20"
+                  >
+                    Select Bot <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
-      {/* Fleet Tenancy Explanation */}
-      <section className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-card to-slate-900/60 border border-card-border space-y-8">
-        <div className="max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
-            <Layers className="w-3.5 h-3.5" /> Multi-Subscription Fleet Architecture
+      {/* Fleet Tenancy & Architecture Breakdown */}
+      <section className="rounded-3xl bg-slate-900/60 border border-slate-800/80 p-8 sm:p-12 relative overflow-hidden">
+        <div className="max-w-3xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
+            <Activity className="w-3.5 h-3.5" /> Production Multi-Tenancy Architecture
           </div>
+
           <h2 className="text-3xl font-extrabold text-white tracking-tight">
-            Run Multiple Bots & Multiple Instances in a Single Discord Guild
+            One Guild. Multiple Bots. Zero Conflicts.
           </h2>
-          <p className="text-slate-400 text-sm leading-relaxed">
-            Need a music bot for your Main Stage and another for your VIP Lounge? Want an Aegis anti-raid shield running concurrently? Our orchestrator supports multiple active subscriptions and distinct container pods per guild with zero naming collisions.
+
+          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+            Need multiple music bots for different voice channels? Our platform uses label-based fleet tenancy (`instance_label`). Run a Lobby Beats bot, a VIP Lounge bot, and an Admin Mod bot simultaneously in the same Discord server without token conflicts.
           </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-blurple/20 text-blurple flex items-center justify-center font-bold text-sm">
-              1
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="font-semibold text-white text-sm flex items-center gap-2">
+                <Layers className="w-4 h-4 text-cyan-400" /> Multi-Instance Fleet Isolation
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Every bot deployment receives an independent Kubernetes Pod with dedicated resource bounds and automated recovery.
+              </p>
             </div>
-            <h4 className="text-sm font-bold text-white">Instance Labeling</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Tag deployments with custom labels like <code>"Lobby DJ"</code> or <code>"VIP Music"</code> for seamless Discord command routing.
-            </p>
-          </div>
 
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-blurple/20 text-blurple flex items-center justify-center font-bold text-sm">
-              2
+            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="font-semibold text-white text-sm flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-blurple" /> Interactive Discord Disambiguation
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Discord slash commands (`/status`, `/restart`, `/bot name`) automatically present dropdown menus when multiple bots exist in your guild.
+              </p>
             </div>
-            <h4 className="text-sm font-bold text-white">Discord Interactive Menus</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              When issuing <code>/status</code>, <code>/restart</code>, or <code>/bot name</code>, the Manager Bot provides interactive dropdowns to disambiguate bots.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-blurple/20 text-blurple flex items-center justify-center font-bold text-sm">
-              3
-            </div>
-            <h4 className="text-sm font-bold text-white">Tabbed Fleet Dashboard</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Inspect real-time health telemetry, latency, and memory consumption for every single instance running inside your community.
-            </p>
           </div>
         </div>
       </section>

@@ -31,6 +31,70 @@ const API_BASE = {
   monitor: process.env.NEXT_PUBLIC_MONITOR_SVC_URL ?? '',
 };
 
+// Shared lock for silent refresh
+let isRefreshing = false;
+let refreshPromise: Promise<AuthSession | null> | null = null;
+
+/**
+ * Refreshes the active session via auth-svc using the HttpOnly cookie or token.
+ */
+export async function refreshAuthSession(): Promise<AuthSession | null> {
+  try {
+    const res = await fetch(`${API_BASE.auth}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      return null;
+    }
+    const body = await res.json();
+    return body.data;
+  } catch (err) {
+    console.warn('Failed to refresh session silently:', err);
+    return null;
+  }
+}
+
+/**
+ * Resilient API fetch wrapper providing credentials: 'include' and automatic
+ * 401 interception with silent session refresh and replay.
+ */
+export async function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const reqInit: RequestInit = {
+    ...init,
+    credentials: 'include',
+  };
+
+  const response = await fetch(input, reqInit);
+
+  // If 401 Unauthorized and not already refreshing or authenticating, attempt silent refresh
+  if (
+    response.status === 401 &&
+    !input.includes('/api/v1/auth/refresh') &&
+    !input.includes('/api/v1/auth/discord/')
+  ) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshPromise = refreshAuthSession().finally(() => {
+        isRefreshing = false;
+      });
+    }
+
+    const refreshedSession = await refreshPromise;
+    if (refreshedSession) {
+      const updatedHeaders = { ...(reqInit.headers || {}) } as Record<string, string>;
+      if (updatedHeaders['Authorization'] || updatedHeaders['authorization']) {
+        updatedHeaders['Authorization'] = `Bearer ${refreshedSession.token}`;
+      }
+      return fetch(input, { ...reqInit, headers: updatedHeaders });
+    }
+  }
+
+  return response;
+}
+
+
 // ============================================================================
 // Auth Service API Calls
 // ============================================================================
@@ -40,7 +104,7 @@ const API_BASE = {
  */
 export async function getDiscordOAuthUrl(redirectUri?: string): Promise<string> {
   const uri = redirectUri || `${window.location.origin}/auth/callback`;
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/discord/url?redirect_uri=${encodeURIComponent(uri)}`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/discord/url?redirect_uri=${encodeURIComponent(uri)}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -56,7 +120,7 @@ export async function getDiscordOAuthUrl(redirectUri?: string): Promise<string> 
  */
 export async function authenticateWithDiscord(code: string, redirectUri?: string): Promise<AuthSession> {
   const uri = redirectUri || `${window.location.origin}/auth/callback`;
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/discord/callback`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/discord/callback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code, redirect_uri: uri }),
@@ -72,7 +136,7 @@ export async function authenticateWithDiscord(code: string, redirectUri?: string
  * Retrieves all platform administrators (Super Admins and appointed admins).
  */
 export async function listAdmins(token: string): Promise<AdminUser[]> {
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/admins`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/admins`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -87,7 +151,7 @@ export async function listAdmins(token: string): Promise<AdminUser[]> {
  * Searches registered users by Discord snowflake ID or username.
  */
 export async function searchUsers(token: string, query: string): Promise<AdminSearchUser[]> {
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/users/search?q=${encodeURIComponent(query)}`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/users/search?q=${encodeURIComponent(query)}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -102,7 +166,7 @@ export async function searchUsers(token: string, query: string): Promise<AdminSe
  * Promotes a registered Discord user to platform administrator (Super Admin only).
  */
 export async function promoteAdmin(token: string, discordId: string): Promise<void> {
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/admins`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/admins`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -120,7 +184,7 @@ export async function promoteAdmin(token: string, discordId: string): Promise<vo
  * Revokes administrator privileges from an appointed admin (Super Admin only).
  */
 export async function revokeAdmin(token: string, discordId: string): Promise<void> {
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/admins/${encodeURIComponent(discordId)}`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/admins/${encodeURIComponent(discordId)}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -135,7 +199,7 @@ export async function revokeAdmin(token: string, discordId: string): Promise<voi
  */
 export async function logoutUser(): Promise<void> {
   try {
-    await fetch(`${API_BASE.auth}/api/v1/auth/logout`, {
+    await apiFetch(`${API_BASE.auth}/api/v1/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -152,7 +216,7 @@ export async function getCurrentUser(token?: string): Promise<UserProfile> {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/me`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/me`, {
     headers,
     credentials: 'include',
     cache: 'no-store',
@@ -172,7 +236,7 @@ export async function getUserGuilds(token?: string): Promise<DiscordGuild[]> {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch(`${API_BASE.auth}/api/v1/auth/guilds`, {
+  const res = await apiFetch(`${API_BASE.auth}/api/v1/auth/guilds`, {
     headers,
     credentials: 'include',
     cache: 'no-store',
@@ -192,7 +256,7 @@ export async function getUserGuilds(token?: string): Promise<DiscordGuild[]> {
  * Fetches all available bot templates and their pricing plans from catalog-svc.
  */
 export async function getCatalogBots(): Promise<BotTemplate[]> {
-  const res = await fetch(`${API_BASE.catalog}/api/v1/bots`, { cache: 'no-store' });
+  const res = await apiFetch(`${API_BASE.catalog}/api/v1/bots`, { cache: 'no-store' });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || 'Failed to retrieve bot catalog');
@@ -205,7 +269,7 @@ export async function getCatalogBots(): Promise<BotTemplate[]> {
  * Fetches single bot template details by ID or slug.
  */
 export async function getBotById(idOrSlug: string): Promise<BotTemplate> {
-  const res = await fetch(`${API_BASE.catalog}/api/v1/bots/${idOrSlug}`, { cache: 'no-store' });
+  const res = await apiFetch(`${API_BASE.catalog}/api/v1/bots/${idOrSlug}`, { cache: 'no-store' });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Bot "${idOrSlug}" not found in catalog`);
@@ -218,7 +282,7 @@ export async function getBotById(idOrSlug: string): Promise<BotTemplate> {
  * Fetches subscription plan details by ID.
  */
 export async function getPlanById(id: string): Promise<SubscriptionPlan> {
-  const res = await fetch(`${API_BASE.catalog}/api/v1/plans/${id}`, { cache: 'no-store' });
+  const res = await apiFetch(`${API_BASE.catalog}/api/v1/plans/${id}`, { cache: 'no-store' });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Plan "${id}" not found`);
@@ -246,7 +310,7 @@ export async function initiateCheckout(req: CheckoutRequest, token?: string): Pr
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE.billing}/api/v1/billing/checkout`, {
+  const res = await apiFetch(`${API_BASE.billing}/api/v1/billing/checkout`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -268,7 +332,7 @@ export async function redeemVoucherCode(code: string, userId: string, guildId: s
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE.billing}/api/v1/billing/redeem`, {
+  const res = await apiFetch(`${API_BASE.billing}/api/v1/billing/redeem`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -285,7 +349,7 @@ export async function redeemVoucherCode(code: string, userId: string, guildId: s
  * Retrieves all subscriptions for a specific Discord guild.
  */
 export async function getGuildSubscriptions(guildId: string): Promise<Subscription[]> {
-  const res = await fetch(`${API_BASE.billing}/api/v1/billing/subscriptions/guild/${guildId}`, {
+  const res = await apiFetch(`${API_BASE.billing}/api/v1/billing/subscriptions/guild/${guildId}`, {
     credentials: 'include',
     cache: 'no-store',
   });
@@ -307,7 +371,7 @@ export async function createPromoCode(req: CreatePromoRequest, token?: string): 
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE.billing}/api/v1/billing/admin/promo`, {
+  const res = await apiFetch(`${API_BASE.billing}/api/v1/billing/admin/promo`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -329,7 +393,7 @@ export async function createVoucherCode(req: CreateVoucherRequest, token?: strin
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE.billing}/api/v1/billing/admin/voucher`, {
+  const res = await apiFetch(`${API_BASE.billing}/api/v1/billing/admin/voucher`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -351,7 +415,7 @@ export async function adminGrantSubscription(req: AdminGrantRequest, token?: str
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE.billing}/api/v1/billing/admin/grant`, {
+  const res = await apiFetch(`${API_BASE.billing}/api/v1/billing/admin/grant`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -372,7 +436,7 @@ export async function adminGrantSubscription(req: AdminGrantRequest, token?: str
  * Retrieves all active bot deployments for a specific Discord guild.
  */
 export async function getGuildDeployments(guildId: string): Promise<Deployment[]> {
-  const res = await fetch(`${API_BASE.deploy}/api/v1/deployments/guild/${guildId}`, {
+  const res = await apiFetch(`${API_BASE.deploy}/api/v1/deployments/guild/${guildId}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -388,7 +452,7 @@ export async function getGuildDeployments(guildId: string): Promise<Deployment[]
  * Retrieves a single deployment by its unique ID.
  */
 export async function getDeploymentById(id: string): Promise<Deployment> {
-  const res = await fetch(`${API_BASE.deploy}/api/v1/deployments/${id}`, { cache: 'no-store' });
+  const res = await apiFetch(`${API_BASE.deploy}/api/v1/deployments/${id}`, { cache: 'no-store' });
   const body = await res.json();
   if (!res.ok) {
     throw new Error(body.error || 'Failed to retrieve deployment details');
@@ -400,7 +464,7 @@ export async function getDeploymentById(id: string): Promise<Deployment> {
  * Provisions a bot pod in Kubernetes or allocates from the pre-warmed turnkey token pool.
  */
 export async function provisionDeployment(req: ProvisionRequest): Promise<Deployment> {
-  const res = await fetch(`${API_BASE.deploy}/api/v1/deployments`, {
+  const res = await apiFetch(`${API_BASE.deploy}/api/v1/deployments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
@@ -416,7 +480,7 @@ export async function provisionDeployment(req: ProvisionRequest): Promise<Deploy
  * Triggers a rolling pod restart in Kubernetes.
  */
 export async function restartDeployment(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE.deploy}/api/v1/deployments/${id}/restart`, {
+  const res = await apiFetch(`${API_BASE.deploy}/api/v1/deployments/${id}/restart`, {
     method: 'POST',
   });
   if (!res.ok) {
@@ -433,7 +497,7 @@ export async function customizeBotAppearance(identifier: string, name?: string, 
     ? `${API_BASE.deploy}/api/v1/deployments/${identifier}/customize`
     : `${API_BASE.deploy}/api/v1/deployments/guild/${identifier}/customize`;
 
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, avatar_url: avatarUrl }),
@@ -453,7 +517,7 @@ export async function getTokenPoolStats(token?: string): Promise<TokenPoolStats>
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE.deploy}/api/v1/admin/token-pool`, {
+  const res = await apiFetch(`${API_BASE.deploy}/api/v1/admin/token-pool`, {
     headers,
     credentials: 'include',
     cache: 'no-store',
@@ -469,7 +533,7 @@ export async function getTokenPoolStats(token?: string): Promise<TokenPoolStats>
  * Checks whether pre-warmed turnkey tokens are available for instant 0-setup deployment.
  */
 export async function checkTokenPoolAvailable(botType: string): Promise<{ is_available: boolean; available_count: number }> {
-  const res = await fetch(`${API_BASE.deploy}/api/v1/token-pool/available?bot_type=${botType}`, {
+  const res = await apiFetch(`${API_BASE.deploy}/api/v1/token-pool/available?bot_type=${botType}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -491,7 +555,7 @@ export async function addPoolTokens(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE.deploy}/api/v1/admin/token-pool`, {
+  const res = await apiFetch(`${API_BASE.deploy}/api/v1/admin/token-pool`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -511,7 +575,7 @@ export async function addPoolTokens(
  * Retrieves health monitoring targets and real-time telemetry for a guild.
  */
 export async function getGuildMonitoringTargets(guildId: string): Promise<MonitoringTarget[]> {
-  const res = await fetch(`${API_BASE.monitor}/api/v1/monitor/guild/${guildId}`, {
+  const res = await apiFetch(`${API_BASE.monitor}/api/v1/monitor/guild/${guildId}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -540,7 +604,7 @@ export async function getGuildStatus(guildId: string): Promise<{
   target?: MonitoringTarget;
   recent_logs: HealthLog[];
 }> {
-  const res = await fetch(`${API_BASE.monitor}/api/v1/monitor/guild/${guildId}`, {
+  const res = await apiFetch(`${API_BASE.monitor}/api/v1/monitor/guild/${guildId}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
