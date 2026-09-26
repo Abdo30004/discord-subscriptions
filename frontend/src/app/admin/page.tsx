@@ -82,7 +82,7 @@ export default function AdminPage() {
   const fetchStats = async () => {
     setFetchingStats(true);
     try {
-      const res = await getTokenPoolStats();
+      const res = await getTokenPoolStats(token || undefined);
       setStats(res);
     } catch (err: any) {
       console.error('Failed to load token pool stats:', err);
@@ -182,12 +182,16 @@ export default function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      await addPoolTokens(newBotType, [
-        {
-          token: newToken.trim(),
-          client_id: newClientId.trim(),
-        },
-      ]);
+      await addPoolTokens(
+        newBotType,
+        [
+          {
+            token: newToken.trim(),
+            client_id: newClientId.trim(),
+          },
+        ],
+        token || undefined
+      );
       setMessage(`Pre-warmed token for ${newBotType.toUpperCase()} safely stored in HashiCorp Vault!`);
       setNewClientId('');
       setNewToken('');
@@ -207,12 +211,15 @@ export default function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      await createPromoCode({
-        code: promoCode.trim().toUpperCase(),
-        discount_type: promoDiscountType,
-        discount_value: Number(promoDiscountValue),
-        max_uses: Number(promoMaxUses),
-      });
+      await createPromoCode(
+        {
+          code: promoCode.trim().toUpperCase(),
+          discount_type: promoDiscountType,
+          discount_value: Number(promoDiscountValue),
+          max_uses: Number(promoMaxUses),
+        },
+        token || undefined
+      );
       setMessage(`Promo code "${promoCode.toUpperCase()}" created and active in billing-svc!`);
       setPromoCode('');
       setTimeout(() => setMessage(null), 4000);
@@ -228,13 +235,16 @@ export default function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await createVoucherCode({
-        code: voucherCode.trim() || undefined,
-        plan_id: voucherPlanId,
-        bot_type: voucherBotType,
-        duration_days: Number(voucherDays),
-        is_dedicated: true,
-      });
+      const res = await createVoucherCode(
+        {
+          code: voucherCode.trim() || undefined,
+          plan_id: voucherPlanId,
+          bot_type: voucherBotType,
+          duration_days: Number(voucherDays),
+          is_dedicated: true,
+        },
+        token || undefined
+      );
       setMessage(`Gift voucher "${res.code}" created successfully!`);
       setVoucherCode('');
       setTimeout(() => setMessage(null), 5000);
@@ -252,15 +262,18 @@ export default function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      await adminGrantSubscription({
-        user_id: grantUserId.trim(),
-        guild_id: grantGuildId.trim(),
-        bot_type: grantBotType,
-        plan_id: grantPlanId,
-        duration_days: Number(grantDurationDays),
-        is_dedicated: true,
-        is_zero_setup: true,
-      });
+      await adminGrantSubscription(
+        {
+          user_id: grantUserId.trim(),
+          guild_id: grantGuildId.trim(),
+          bot_type: grantBotType,
+          plan_id: grantPlanId,
+          duration_days: Number(grantDurationDays),
+          is_dedicated: true,
+          is_zero_setup: true,
+        },
+        token || undefined
+      );
       setMessage(`Admin subscription granted for guild ${grantGuildId.trim()}! Pod provisioning queued.`);
       setGrantUserId('');
       setGrantGuildId('');

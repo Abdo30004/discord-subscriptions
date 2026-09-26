@@ -35,7 +35,7 @@ export default function CheckoutPage() {
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, guilds, loginWithDiscord } = useAuth();
+  const { user, token, guilds, loginWithDiscord } = useAuth();
 
   const botId = searchParams.get('bot') || 'bot-music-01';
   const botType = searchParams.get('botType') || 'music';
@@ -112,15 +112,18 @@ function CheckoutContent() {
     setSubmitting(true);
     setError(null);
     try {
-      const resp = await initiateCheckout({
-        user_id: user.id,
-        guild_id: guildId,
-        plan_id: planId,
-        bot_type: botType,
-        instance_label: instanceLabel,
-        promo_code: appliedPromo || undefined,
-        is_zero_setup: isZeroSetup,
-      });
+      const resp = await initiateCheckout(
+        {
+          user_id: user.id,
+          guild_id: guildId,
+          plan_id: planId,
+          bot_type: botType,
+          instance_label: instanceLabel,
+          promo_code: appliedPromo || undefined,
+          is_zero_setup: isZeroSetup,
+        },
+        token || undefined
+      );
 
       if (resp.is_free_instant_active && resp.subscription) {
         if (isZeroSetup) {
@@ -157,7 +160,7 @@ function CheckoutContent() {
     setSubmitting(true);
     setError(null);
     try {
-      const sub = await redeemVoucherCode(voucherCode.trim(), user.id, guildId);
+      const sub = await redeemVoucherCode(voucherCode.trim(), user.id, guildId, token || undefined);
       setSuccessMessage(`Gift voucher redeemed! Subscription activated until ${new Date(sub.valid_until).toLocaleDateString()}`);
       setTimeout(() => {
         router.push(`/dashboard?activated=${sub.id}`);

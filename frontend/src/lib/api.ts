@@ -131,11 +131,30 @@ export async function revokeAdmin(token: string, discordId: string): Promise<voi
 }
 
 /**
- * Retrieves the authenticated user profile using their JWT session.
+ * Logs the user out and clears the HttpOnly auth cookie.
  */
-export async function getCurrentUser(token: string): Promise<UserProfile> {
+export async function logoutUser(): Promise<void> {
+  try {
+    await fetch(`${API_BASE.auth}/api/v1/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (err) {
+    console.error('Logout error:', err);
+  }
+}
+
+/**
+ * Retrieves the authenticated user profile using their JWT session or HttpOnly cookie.
+ */
+export async function getCurrentUser(token?: string): Promise<UserProfile> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const res = await fetch(`${API_BASE.auth}/api/v1/auth/me`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
     cache: 'no-store',
   });
   const body = await res.json();
@@ -148,9 +167,14 @@ export async function getCurrentUser(token: string): Promise<UserProfile> {
 /**
  * Retrieves all Discord servers where the authenticated user has management permissions.
  */
-export async function getUserGuilds(token: string): Promise<DiscordGuild[]> {
+export async function getUserGuilds(token?: string): Promise<DiscordGuild[]> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const res = await fetch(`${API_BASE.auth}/api/v1/auth/guilds`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
     cache: 'no-store',
   });
   const body = await res.json();
@@ -210,16 +234,22 @@ export async function getPlanById(id: string): Promise<SubscriptionPlan> {
 /**
  * Initiates checkout for a subscription plan or turnkey zero-setup delivery.
  */
-export async function initiateCheckout(req: CheckoutRequest): Promise<CheckoutResponse> {
+export async function initiateCheckout(req: CheckoutRequest, token?: string): Promise<CheckoutResponse> {
   const payload = {
     ...req,
     return_url: req.return_url || `${window.location.origin}/dashboard?checkout=success`,
     cancel_url: req.cancel_url || `${window.location.origin}/store?checkout=cancelled`,
   };
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE.billing}/api/v1/billing/checkout`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
   const body = await res.json();
@@ -232,10 +262,16 @@ export async function initiateCheckout(req: CheckoutRequest): Promise<CheckoutRe
 /**
  * Redeems a promotional gift voucher code for a guild subscription.
  */
-export async function redeemVoucherCode(code: string, userId: string, guildId: string): Promise<Subscription> {
+export async function redeemVoucherCode(code: string, userId: string, guildId: string, token?: string): Promise<Subscription> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE.billing}/api/v1/billing/redeem`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify({ code, user_id: userId, guild_id: guildId }),
   });
   const body = await res.json();
@@ -250,6 +286,7 @@ export async function redeemVoucherCode(code: string, userId: string, guildId: s
  */
 export async function getGuildSubscriptions(guildId: string): Promise<Subscription[]> {
   const res = await fetch(`${API_BASE.billing}/api/v1/billing/subscriptions/guild/${guildId}`, {
+    credentials: 'include',
     cache: 'no-store',
   });
   if (!res.ok) {
@@ -264,10 +301,16 @@ export async function getGuildSubscriptions(guildId: string): Promise<Subscripti
 /**
  * Creates a promotional discount code (admin only).
  */
-export async function createPromoCode(req: CreatePromoRequest): Promise<PromoCode> {
+export async function createPromoCode(req: CreatePromoRequest, token?: string): Promise<PromoCode> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE.billing}/api/v1/billing/admin/promo`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(req),
   });
   const body = await res.json();
@@ -280,10 +323,16 @@ export async function createPromoCode(req: CreatePromoRequest): Promise<PromoCod
 /**
  * Creates a gift voucher code (admin only).
  */
-export async function createVoucherCode(req: CreateVoucherRequest): Promise<VoucherCode> {
+export async function createVoucherCode(req: CreateVoucherRequest, token?: string): Promise<VoucherCode> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE.billing}/api/v1/billing/admin/voucher`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(req),
   });
   const body = await res.json();
@@ -296,10 +345,16 @@ export async function createVoucherCode(req: CreateVoucherRequest): Promise<Vouc
 /**
  * Grants an instant administrator subscription without payment.
  */
-export async function adminGrantSubscription(req: AdminGrantRequest): Promise<Subscription> {
+export async function adminGrantSubscription(req: AdminGrantRequest, token?: string): Promise<Subscription> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE.billing}/api/v1/billing/admin/grant`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(req),
   });
   const body = await res.json();
@@ -392,8 +447,17 @@ export async function customizeBotAppearance(identifier: string, name?: string, 
 /**
  * Retrieves token pool inventory statistics from deploy-svc.
  */
-export async function getTokenPoolStats(): Promise<TokenPoolStats> {
-  const res = await fetch(`${API_BASE.deploy}/api/v1/admin/token-pool`, { cache: 'no-store' });
+export async function getTokenPoolStats(token?: string): Promise<TokenPoolStats> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE.deploy}/api/v1/admin/token-pool`, {
+    headers,
+    credentials: 'include',
+    cache: 'no-store',
+  });
   if (!res.ok) {
     return {};
   }
@@ -417,10 +481,20 @@ export async function checkTokenPoolAvailable(botType: string): Promise<{ is_ava
 /**
  * Adds fresh pre-warmed tokens into HashiCorp Vault and deploy_db (admin only).
  */
-export async function addPoolTokens(botType: string, tokens: Array<{ token: string; client_id: string }>): Promise<void> {
+export async function addPoolTokens(
+  botType: string,
+  tokens: Array<{ token: string; client_id: string }>,
+  token?: string
+): Promise<void> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE.deploy}/api/v1/admin/token-pool`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify({ bot_type: botType, tokens }),
   });
   if (!res.ok) {

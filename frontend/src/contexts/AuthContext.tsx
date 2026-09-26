@@ -9,6 +9,7 @@ import {
   getDiscordOAuthUrl,
   getCurrentUser,
   getUserGuilds,
+  logoutUser,
 } from '@/lib/api';
 
 interface AuthContextType {
@@ -81,7 +82,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedToken) {
       setAuthSession(savedToken);
     } else {
-      setIsLoading(false);
+      // Check if HttpOnly cookie session is active
+      getCurrentUser()
+        .then(async (userProfile) => {
+          const userGuilds = await getUserGuilds().catch(() => []);
+          setUser(userProfile);
+          setGuilds(userGuilds);
+          const savedGuildId = localStorage.getItem(SELECTED_GUILD_KEY);
+          const matchedGuild = userGuilds.find((g) => g.id === savedGuildId);
+          const active = matchedGuild || userGuilds[0] || null;
+          setSelectedGuild(active);
+        })
+        .catch(() => {
+          // No active cookie session
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
   }, [setAuthSession]);
 
@@ -95,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SELECTED_GUILD_KEY);
     setToken(null);
@@ -103,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setGuilds([]);
     setSelectedGuild(null);
     setError(null);
+    await logoutUser();
   };
 
   const selectGuild = (guild: DiscordGuild) => {
