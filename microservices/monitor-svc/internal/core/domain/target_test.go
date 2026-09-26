@@ -65,7 +65,7 @@ func TestMonitoringTarget_ApplyCheckResult(t *testing.T) {
 	}
 
 	// 2nd consecutive failure triggers offline status
-	changed, old = target.ApplyCheckResult(domain.CheckResult{
+	changed, _ = target.ApplyCheckResult(domain.CheckResult{
 		Status: events.BotStatusOffline,
 	})
 	if !changed {

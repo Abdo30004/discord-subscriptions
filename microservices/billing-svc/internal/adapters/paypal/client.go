@@ -88,9 +88,5 @@ func (c *Client) VerifyWebhookSignature(r *http.Request, webhookID string) bool 
 
 	// Signature verification headers
 	sig := r.Header.Get("PAYPAL-TRANSMISSION-SIG")
-	if sig == "" {
-		return false
-	}
-
-	return true
+	return sig != ""
 }
