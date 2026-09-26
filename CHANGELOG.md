@@ -29,6 +29,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🌐 Gateway, Traefik & Networking
 
+- **gateway**: route all services through traefik with zero host port exports ([04df03a](https://github.com/Abdo30004/discord-subscriptions/commit/04df03a4450c07d4014e81f0017e8983b10ac0bd))
 - **gateway**: configure traefik v3 reverse proxy and docker compose orchestration ([133cb4e](https://github.com/Abdo30004/discord-subscriptions/commit/133cb4eaf0ca49bc8d2721d757b915ca4275feb0))
 
 ### ☁️ Kubernetes & Cloud Orchestration
@@ -46,6 +47,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🤖 CI/CD Automation
 
+- modularize workflows with selective path triggers for targeted execution ([942c51c](https://github.com/Abdo30004/discord-subscriptions/commit/942c51ca956d38cee65ffced27ef4c59988d7f25))
 - upgrade diagram validation job to node 24 for mermaid 12 compatibility ([80d9cc7](https://github.com/Abdo30004/discord-subscriptions/commit/80d9cc77820163caafa48ad9a5d5a82ea38b5dd4))
 - add automated mermaid diagram validator script and ci job ([bae2a68](https://github.com/Abdo30004/discord-subscriptions/commit/bae2a6895ead1d5898a5ac855199ebd1b43c0581))
 - configure multi-workspace go cache dependency pattern ([42900ba](https://github.com/Abdo30004/discord-subscriptions/commit/42900bab3969d4349e1312d6342fc25f35d3ca8e))
