@@ -45,6 +45,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
+- update .env.example with comprehensive platform config and add env sync rule ([877f4bc](https://github.com/Abdo30004/discord-subscriptions/commit/877f4bc25e01683c1e75aa7cd727f2f056a6b8d1))
 - **frontend**: update route guards and navigation visibility specification ([82f51de](https://github.com/Abdo30004/discord-subscriptions/commit/82f51de27a97738c0fe94614825305148bde231f))
 - **frontend**: update architecture and route documentation for real api and auth flow ([892a402](https://github.com/Abdo30004/discord-subscriptions/commit/892a402c6aac8574356ca1c5c26fe87d90c034f5))
 - specify zero host port exports and direct traefik web access ([82612d6](https://github.com/Abdo30004/discord-subscriptions/commit/82612d63888f0c492b420361724d1866a70175b8))
