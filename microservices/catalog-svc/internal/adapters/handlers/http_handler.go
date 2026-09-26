@@ -41,6 +41,9 @@ func (h *HTTPHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/catalog/bots", h.ListBots)
 	mux.HandleFunc("GET /api/v1/catalog/bots/{idOrSlug}", h.GetBot)
 	mux.HandleFunc("GET /api/v1/catalog/plans/{id}", h.GetPlan)
+	mux.HandleFunc("GET /api/v1/bots", h.ListBots)
+	mux.HandleFunc("GET /api/v1/bots/{idOrSlug}", h.GetBot)
+	mux.HandleFunc("GET /api/v1/plans/{id}", h.GetPlan)
 }
 
 func (h *HTTPHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
