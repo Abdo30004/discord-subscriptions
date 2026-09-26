@@ -124,6 +124,15 @@ Whenever you implement or alter:
 6. **A Token Pool or 0-Setup rule**: Update [TOKEN_POOL_ZERO_SETUP.md](file:///C:/Users/kasep/Desktop/discord-subscriptions/docs/TOKEN_POOL_ZERO_SETUP.md).
 7. **A Fleet or Multi-Subscription rule**: Update [MULTI_BOT_FLEET.md](file:///C:/Users/kasep/Desktop/discord-subscriptions/docs/MULTI_BOT_FLEET.md).
 8. **An architectural pattern or service link**: Update [ARCHITECTURE.md](file:///C:/Users/kasep/Desktop/discord-subscriptions/docs/ARCHITECTURE.md).
+9. **An Environment variable, secret, port, or runtime config**: Update [.env.example](file:///C:/Users/kasep/Desktop/discord-subscriptions/.env.example) and [DEVELOPMENT_GUIDE.md](file:///C:/Users/kasep/Desktop/discord-subscriptions/docs/DEVELOPMENT_GUIDE.md).
+
+### Mandatory `.env.example` Synchronization Invariant
+Whenever an environment variable, secret key, port assignment, or runtime toggle is introduced, modified, or retired in:
+- Any Go microservice (`auth`, `catalog`, `billing`, `deploy`, `monitor`)
+- Central Manager Bot (`bots/manager-bot/`)
+- Next.js Frontend (`frontend/`)
+- Infrastructure & Edge Gateway (`docker-compose.yml`, `traefik/`)
+The agent **MUST** update [.env.example](file:///C:/Users/kasep/Desktop/discord-subscriptions/.env.example) during the same turn. The file must remain logically categorized with inline comments explaining each configuration option and providing sensible development defaults.
 
 ---
 

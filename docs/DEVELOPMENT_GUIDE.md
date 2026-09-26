@@ -158,6 +158,10 @@ npm run changelog:check
 [ ] 7. Did you change Docker Compose or infrastructure dependencies?
        --> Update docker-compose.yml.
        --> Update docs/ARCHITECTURE.md and docs/DEVELOPMENT_GUIDE.md.
+
+[ ] 8. Did you add/modify/retire any environment variable, secret, or port?
+       --> Update .env.example (categorized with defaults and descriptions).
+       --> Update docs/DEVELOPMENT_GUIDE.md environment reference table.
 ```
 
 ---
