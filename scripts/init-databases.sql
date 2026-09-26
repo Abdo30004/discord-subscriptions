@@ -24,11 +24,15 @@ CREATE TABLE IF NOT EXISTS users (
     access_token TEXT,
     refresh_token TEXT,
     token_expires_at TIMESTAMP WITH TIME ZONE,
+    is_admin BOOLEAN NOT NULL DEFAULT false,
+    admin_promoted_at TIMESTAMP WITH TIME ZONE,
+    admin_promoted_by VARCHAR(64),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin) WHERE is_admin = true;
 
 -- Setup catalog_db schema and seeds
 \c catalog_db;
