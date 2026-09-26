@@ -1,0 +1,59 @@
+# cliff.toml
+# Git-Cliff configuration for Discord Bot Subscription Platform
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to the **Discord Bot Subscription & Turnkey Fleet Management Platform** will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project strictly adheres to [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+---
+"""
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+        - {% if commit.scope %}**{{ commit.scope }}**: {% endif %}\
+            {% if commit.breaking %}[**breaking**] {% endif %}\
+            {{ commit.message | upper_first }} \
+            ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/Abdo30004/discord-subscriptions/commit/{{ commit.id }}))\
+    {% endfor %}
+{% endfor %}
+"""
+footer = """
+---
+*Generated automatically with git-cliff based on Conventional Commits.*
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+commit_parsers = [
+    { message = "^feat", group = "<!-- 0 -->🚀 Features & Capabilities" },
+    { message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes & Resilience" },
+    { message = ".*gateway.*|.*traefik.*", group = "<!-- 2 -->🌐 Gateway, Traefik & Networking" },
+    { message = ".*k8s.*|.*kubernetes.*", group = "<!-- 3 -->☁️ Kubernetes & Cloud Orchestration" },
+    { message = ".*infra.*", group = "<!-- 4 -->🏗️ Infrastructure & Persistence" },
+    { message = "^doc", group = "<!-- 5 -->📚 Documentation & Architecture Guides" },
+    { message = "^perf", group = "<!-- 6 -->⚡ Performance Optimizations" },
+    { message = "^refactor", group = "<!-- 7 -->♻️ Refactoring & Clean Architecture" },
+    { message = "^test", group = "<!-- 8 -->🧪 Testing & Validation" },
+    { message = "^build", group = "<!-- 9 -->📦 Build System & Dependencies" },
+    { message = "^ci", group = "<!-- 10 -->🤖 CI/CD Automation" },
+    { message = "^chore", group = "<!-- 11 -->🔧 Maintenance & Scaffolding" },
+]
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "v[0-9].*"
+topo_order = false
+sort_commits = "newest"

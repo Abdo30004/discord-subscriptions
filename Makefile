@@ -1,4 +1,4 @@
-.PHONY: up down restart test lint build build-bot build-frontend build-all validate-docker validate-k8s check-all
+.PHONY: up down restart test lint build build-bot build-frontend build-all validate-docker validate-k8s changelog changelog-check check-all
 
 up:
 	docker compose up -d
@@ -10,7 +10,7 @@ restart:
 	docker compose restart
 
 test:
-	go test -v ./shared/... ./microservices/...
+	go test -v ./shared/... ./microservices/auth-svc/... ./microservices/catalog-svc/... ./microservices/billing-svc/... ./microservices/deploy-svc/... ./microservices/monitor-svc/...
 
 lint:
 	golangci-lint run ./...
@@ -30,7 +30,14 @@ validate-docker:
 validate-k8s:
 	kubectl kustomize k8s/
 
+changelog:
+	node scripts/generate-changelog.mjs
+
+changelog-check:
+	node scripts/generate-changelog.mjs --check
+
 build-all: build build-bot build-frontend
 
-check-all: test build-all validate-docker validate-k8s
+check-all: test build-all validate-docker validate-k8s changelog-check
+
 
