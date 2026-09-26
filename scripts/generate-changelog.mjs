@@ -79,7 +79,7 @@ const CATEGORIES = {
 
 function parseCommit(commit) {
   // Skip changelog synchronization and release meta-commits to avoid cyclic changelog updates
-  if (/^(?:docs|chore|ci)\(changelog\)|^chore\(release\)/i.test(commit.subject)) {
+  if (/changelog/i.test(commit.subject) || /^chore\(release\)/i.test(commit.subject)) {
     return { skip: true };
   }
 
