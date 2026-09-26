@@ -11,6 +11,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **docker**: introduce separated dev and prod compose environments with production switching ([b7070f4](https://github.com/Abdo30004/discord-subscriptions/commit/b7070f4f590b193156295a296b195b9a5780ba6a))
 - **ci**: add static analysis, vulnerability scanning, and e2e integration test suite ([f85ab25](https://github.com/Abdo30004/discord-subscriptions/commit/f85ab2538f52c88e65274f0f193cfda7f246d900))
 - **frontend**: convert landing and store to server components with error boundaries ([6ffaf66](https://github.com/Abdo30004/discord-subscriptions/commit/6ffaf66f5b1befb02cbebfc1f6e090afc7db25b3))
 - **manager-bot**: implement discord gateway sharding with master health aggregator ([c4f7d39](https://github.com/Abdo30004/discord-subscriptions/commit/c4f7d3980c7da7309188585e11f5917c17ad5d9e))
@@ -44,6 +45,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🐛 Bug Fixes & Resilience
 
+- **bot,monitor**: handle standby sharding and guard nil database queries ([7d4048e](https://github.com/Abdo30004/discord-subscriptions/commit/7d4048e09b306ba4cef4d2f4861af1e1204b92ae))
 - **docker**: verify rabbitmq port connectivity in healthcheck ([0967118](https://github.com/Abdo30004/discord-subscriptions/commit/0967118f084e7da92b2527da9a5958fbc85588f7))
 - **microservices**: distinguish pending and active broker connections in startup logs ([7c07414](https://github.com/Abdo30004/discord-subscriptions/commit/7c0741467d207bd4ca38cca9b1c7ac02a0d8fd95))
 - **shared**: enable background rabbitmq reconnection loop and harden health check timeouts ([861204b](https://github.com/Abdo30004/discord-subscriptions/commit/861204b2cd533827dbbccebff5e87fde14fc0470))
