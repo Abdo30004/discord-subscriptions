@@ -144,3 +144,20 @@ kubectl -n discord-bots get pods -o wide --show-labels
 # Tail logs of a specific bot instance
 kubectl -n discord-bots logs -f deployment/bot-11223344-49182309
 ```
+
+---
+
+## 6. High Availability, Autoscaling & Monitoring
+
+### Pod Disruption Budgets (`k8s/10-scaling/pdb.yaml`)
+To prevent service downtime during voluntary node drains or cluster upgrades, every control-plane microservice declares a `PodDisruptionBudget` with `minAvailable: 1`.
+
+### Horizontal Pod Autoscaling (`k8s/10-scaling/hpa.yaml`)
+Services autoscale based on real-time load:
+- **Replica Bounds**: Minimum 2 replicas, maximum 10 replicas.
+- **Scaling Triggers**: Average CPU utilization > 80% or Average Memory utilization > 80%.
+
+### Prometheus ServiceMonitor (`k8s/11-monitoring/servicemonitors.yaml`)
+Compatible with Prometheus Operator:
+- Scrapes all pods labeled `app.kubernetes.io/component: microservice` at `/metrics` every 15 seconds.
+

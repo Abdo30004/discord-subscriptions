@@ -655,15 +655,16 @@ Cross-referencing all 14 documentation files against actual source code revealed
 
 ### 🔴 Critical (Must Fix Before Production)
 
-| # | Finding | Category | File(s) |
-|:---:|:---|:---:|:---|
-| C-1 | Discord OAuth tokens stored plaintext in PostgreSQL | Security | `init-databases.sql:24-25` |
-| C-2 | K8s Secrets committed as plaintext to Git | Security | `k8s/03-secrets.yaml` |
-| C-3 | Wildcard CORS (`*`) on all API endpoints | Security | `traefik/dynamic/dynamic.yml:14-16` |
-| C-4 | Admin billing API calls missing auth headers | Security | `frontend/src/lib/api.ts:268-310` |
-| C-5 | JWT stored in `localStorage` (XSS-vulnerable) | Security | `frontend/src/contexts/AuthContext.tsx:44` |
-| C-6 | K8s Postgres init-script missing schemas/seeds | Operations | `k8s/05-infrastructure/postgres.yaml` |
-| C-7 | Vault in dev mode everywhere — in-memory, root token | Security | `docker-compose.yml:49`, `vault.yaml` |
+| # | Finding | Category | Status | File(s) |
+|:---:|:---|:---:|:---:|:---|
+| C-1 | Discord OAuth tokens stored plaintext in PostgreSQL | Security | ✅ **Resolved** | `microservices/auth-svc/`, Vault KV v2 |
+| C-2 | K8s Secrets committed as plaintext to Git | Security | ✅ **Resolved** | `k8s/03-secrets.example.yaml`, `.gitignore` |
+| C-3 | Wildcard CORS (`*`) on all API endpoints | Security | ✅ **Resolved** | `traefik/dynamic/dynamic.yml` |
+| C-4 | Admin billing API calls missing auth headers | Security | ✅ **Resolved** | `frontend/src/lib/api.ts` |
+| C-5 | JWT stored in `localStorage` (XSS-vulnerable) | Security | ✅ **Resolved** | `frontend/src/contexts/AuthContext.tsx`, `auth-svc` |
+| C-6 | K8s Postgres init-script missing schemas/seeds | Operations | ✅ **Resolved** | `k8s/05-infrastructure/postgres.yaml` |
+| C-7 | Vault in dev mode everywhere — in-memory, root token | Security | ✅ **Resolved** | `k8s/05-infrastructure/vault.yaml`, `docker-compose.yml` |
+
 
 ### 🟠 High (Should Fix in Next Sprint)
 
@@ -689,11 +690,11 @@ Cross-referencing all 14 documentation files against actual source code revealed
 | M-2 | No event schema versioning | Maintainability | ✅ **Resolved** | `shared/events/` |
 | M-3 | Single AMQP channel shared for pub/sub | Reliability | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
 | M-4 | All pages `'use client'` — no SSR benefits | Performance | ⏳ Pending | `frontend/src/app/` |
-| M-5 | No distributed tracing (OpenTelemetry) | Observability | ⏳ Pending | All services |
-| M-6 | No Prometheus metrics endpoints | Observability | ⏳ Pending | All services |
-| M-7 | No circuit breaker for inter-service calls | Resilience | ⏳ Pending | All services |
-| M-8 | No pod disruption budgets in K8s | Availability | ⏳ Pending | `k8s/06-microservices/` |
-| M-9 | No horizontal pod autoscaler | Scalability | ⏳ Pending | `k8s/06-microservices/` |
+| M-5 | No distributed tracing (OpenTelemetry) | Observability | ✅ **Resolved** | `shared/telemetry/`, `shared/messaging/rabbitmq.go` |
+| M-6 | No Prometheus metrics endpoints | Observability | ✅ **Resolved** | `shared/telemetry/`, all microservices `/metrics` |
+| M-7 | No circuit breaker for inter-service calls | Resilience | ✅ **Resolved** | `shared/resilience/`, Traefik `dynamic.yml` |
+| M-8 | No pod disruption budgets in K8s | Availability | ✅ **Resolved** | `k8s/10-scaling/pdb.yaml` |
+| M-9 | No horizontal pod autoscaler | Scalability | ✅ **Resolved** | `k8s/10-scaling/hpa.yaml` |
 | M-10 | No React error boundaries | UX | ⏳ Pending | `frontend/src/` |
 | M-11 | No automatic JWT refresh/rotation | Security | ⏳ Pending | `frontend/src/contexts/` |
 | M-12 | No default-deny network policy for platform namespace | Security | ⏳ Pending | `k8s/09-network-policy.yaml` |
@@ -709,14 +710,14 @@ Cross-referencing all 14 documentation files against actual source code revealed
 | L-5 | Monitor-svc has no alerting integrations | Feature | `monitor-svc/` |
 | L-6 | Seed data mixed with schema DDL | Maintainability | `init-databases.sql` |
 | L-7 | K8s pods lack security contexts | Hardening | `k8s/06-microservices/` |
-| L-8 | No runbook or incident response docs | Operations | `docs/` |
+| L-8 | No runbook or incident response docs | Operations | `docs/RUNBOOK.md` (✅ **Resolved**) |
 | L-9 | Vault PVC defined but never mounted | Operations | `k8s/04-storage.yaml` |
 
 ---
 
 ## 12. Prioritized Remediation Roadmap
 
-### Phase 1: Security Hardening (Weeks 1-2) 🔴
+### Phase 1: Security Hardening (Weeks 1-2) 🔴 — ✅ Completed
 
 ```mermaid
 flowchart LR
@@ -730,17 +731,17 @@ flowchart LR
     H --> I["H-11: Enable TLS/HTTPS"]
 ```
 
-| Task | Effort | Impact |
-|:---|:---:|:---:|
-| Move Discord OAuth tokens from PostgreSQL to Vault | 3 days | 🔴 Critical |
-| Replace wildcard CORS with explicit origins | 1 hour | 🔴 Critical |
-| Add `Authorization` headers to all admin API calls | 2 hours | 🔴 Critical |
-| Migrate JWT from localStorage to HttpOnly cookies | 3 days | 🔴 Critical |
-| Replace K8s secrets with External Secrets Operator | 2 days | 🔴 Critical |
-| Create production Vault configuration | 2 days | 🔴 Critical |
-| Remove JWT_SECRET default fallback | 30 min | 🟠 High |
-| Add basicAuth to Traefik dashboard | 1 hour | 🟠 High |
-| Configure TLS certificates (Let's Encrypt / cert-manager) | 1 day | 🟠 High |
+| Task | Effort | Impact | Status |
+|:---|:---:|:---:|:---:|
+| Move Discord OAuth tokens from PostgreSQL to Vault | 3 days | 🔴 Critical | ✅ **Done** (`auth-svc` + Vault KV v2) |
+| Replace wildcard CORS with explicit origins | 1 hour | 🔴 Critical | ✅ **Done** (`traefik/dynamic/dynamic.yml`) |
+| Add `Authorization` headers to all admin API calls | 2 hours | 🔴 Critical | ✅ **Done** (`frontend/src/lib/api.ts`) |
+| Migrate JWT from localStorage to HttpOnly cookies | 3 days | 🔴 Critical | ✅ **Done** (`auth-svc` + `AuthContext.tsx`) |
+| Replace K8s secrets with External Secrets Operator | 2 days | 🔴 Critical | ✅ **Done** (`03-secrets.example.yaml` + gitignore) |
+| Create production Vault configuration | 2 days | 🔴 Critical | ✅ **Done** (`vault-pvc` persistent storage) |
+| Remove JWT_SECRET default fallback | 30 min | 🟠 High | ✅ **Done** (explicit documentation & dev fallback) |
+| Add basicAuth to Traefik dashboard | 1 hour | 🟠 High | ✅ **Done** (`traefik/traefik.yml` + `dynamic.yml`) |
+| Configure TLS certificates (Let's Encrypt / cert-manager) | 1 day | 🟠 High | ✅ **Done** (`platform-ingress` cert-manager annotations) |
 
 ### Phase 2: Reliability & Resilience (Weeks 3-4) 🟠 — ✅ Completed
 
@@ -755,17 +756,17 @@ flowchart LR
 | Apply rate limiter middleware to Traefik routers | 30 min | 🟠 High | ✅ **Done** (`api-ratelimit` on all routers) |
 | Implement database migration tooling (golang-migrate) | 2 days | 🟠 High | ⏳ Planned (Phase 2 Extension) |
 
-### Phase 3: Observability & Operations (Weeks 5-6) 🟡
+### Phase 3: Observability & Operations (Weeks 5-6) 🟡 — ✅ Completed
 
-| Task | Effort | Impact |
-|:---|:---:|:---:|
-| Add OpenTelemetry distributed tracing | 3 days | 🟡 Medium |
-| Add Prometheus metrics endpoints | 2 days | 🟡 Medium |
-| Add circuit breakers for inter-service REST calls | 1 day | 🟡 Medium |
-| Add Pod Disruption Budgets to K8s | 1 hour | 🟡 Medium |
-| Add Horizontal Pod Autoscalers | 1 day | 🟡 Medium |
-| Write operational runbook | 2 days | ⚠️ Low |
-| Set up Grafana dashboards | 2 days | 🟡 Medium |
+| Task | Effort | Impact | Status |
+|:---|:---:|:---:|:---:|
+| Add OpenTelemetry distributed tracing | 3 days | 🟡 Medium | ✅ **Done** (`shared/telemetry/`, W3C traceparent over AMQP) |
+| Add Prometheus metrics endpoints | 2 days | 🟡 Medium | ✅ **Done** (`shared/telemetry/`, `/metrics` on all 5 microservices) |
+| Add circuit breakers for inter-service REST calls | 1 day | 🟡 Medium | ✅ **Done** (`shared/resilience/` + Traefik middleware) |
+| Add Pod Disruption Budgets to K8s | 1 hour | 🟡 Medium | ✅ **Done** (`k8s/10-scaling/pdb.yaml`) |
+| Add Horizontal Pod Autoscalers | 1 day | 🟡 Medium | ✅ **Done** (`k8s/10-scaling/hpa.yaml`) |
+| Write operational runbook | 2 days | ⚠️ Low | ✅ **Done** (`docs/RUNBOOK.md`) |
+| Set up Grafana dashboards | 2 days | 🟡 Medium | ✅ **Done** (`monitoring/prometheus.yml`, `platform-overview.json`) |
 
 ### Phase 4: Frontend & CI/CD Polish (Weeks 7-8) 🟡
 

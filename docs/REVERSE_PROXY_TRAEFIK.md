@@ -88,9 +88,10 @@ Configures EntryPoints, providers, logging, and the API dashboard:
 Defines the routers, middlewares, and backend server load balancers.
 
 ### 3.3 Middlewares Applied:
-1. **`cors-headers`**: Configures permissive CORS headers for local and production web clients.
+1. **`cors-headers`**: Configures strict CORS headers for local and production web clients.
 2. **`compress`**: Enables Gzip and Brotli response compression for faster client asset loading.
 3. **`api-ratelimit`**: Defends backend services against brute force and DDoS attacks by enforcing a sliding window limit of 100 req/s with a burst allowance of 50.
+4. **`service-circuit-breaker`**: Edge circuit breaker preventing cascading failures by tripping open when backend 5xx error ratio exceeds 30% across a sliding window (`ResponseCodeRatio(500, 600, 0, 600) > 0.30`).
 
 ---
 

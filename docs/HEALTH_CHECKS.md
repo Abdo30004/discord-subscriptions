@@ -336,4 +336,29 @@ curl -s http://localhost:8090/ping
 
 # 6. Docker Container Health Status
 docker compose ps
+
+# 7. Microservice Prometheus Metrics
+curl -s http://localhost:8080/metrics
 ```
+
+---
+
+## 9. Prometheus Telemetry & RED Metrics Protocol (`shared/telemetry`)
+
+Every Go microservice exposes standard Prometheus metrics at `/metrics` using `shared/telemetry/metrics.go`:
+
+### Core Metrics Exported
+
+| Metric Name | Type | Labels | Description |
+| :--- | :--- | :--- | :--- |
+| `http_requests_total` | Counter | `service`, `method`, `path`, `status` | Total incoming HTTP requests partitioned by status code |
+| `http_request_duration_seconds` | Histogram | `service`, `method`, `path` | Request execution latency distribution (buckets: 5ms to 10s) |
+| `bot_fleet_active_instances` | Gauge | `type` | Live active bot pods orchestrated across the cluster |
+
+### OpenTelemetry Distributed Tracing
+Inter-service AMQP messages over RabbitMQ (`discord.events`) carry W3C TraceContext headers:
+- `traceparent`: Encodes version, trace ID, parent span ID, and trace flags.
+- `tracestate`: Vendor-specific state propagation.
+
+Inbound HTTP requests and RabbitMQ consumers automatically extract or initialize these trace contexts via `shared/telemetry.ExtractAMQPTraceContext` and `shared/telemetry.InjectAMQPTraceContext`.
+
