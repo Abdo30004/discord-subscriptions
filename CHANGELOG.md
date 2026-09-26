@@ -44,6 +44,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🐛 Bug Fixes & Resilience
 
+- **go**: resolve static analysis linter warnings and upgrade e2e to go 1.26 ([046a1b1](https://github.com/Abdo30004/discord-subscriptions/commit/046a1b1aaa108e474181e59b440379f33ea1efa4))
 - **docs**: resolve syntax errors across all markdown mermaid diagrams ([312204b](https://github.com/Abdo30004/discord-subscriptions/commit/312204bacc4b671b19bc503fa4b5476dc678c681))
 
 ### 🌐 Gateway, Traefik & Networking
@@ -79,6 +80,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🤖 CI/CD Automation
 
+- **go**: upgrade go runner to 1.26 and configure multi-module golangci-lint ([a0798c8](https://github.com/Abdo30004/discord-subscriptions/commit/a0798c8bf163b2d0b1d38a774a775714bbcda116))
 - modularize workflows with selective path triggers for targeted execution ([942c51c](https://github.com/Abdo30004/discord-subscriptions/commit/942c51ca956d38cee65ffced27ef4c59988d7f25))
 - upgrade diagram validation job to node 24 for mermaid 12 compatibility ([80d9cc7](https://github.com/Abdo30004/discord-subscriptions/commit/80d9cc77820163caafa48ad9a5d5a82ea38b5dd4))
 - add automated mermaid diagram validator script and ci job ([bae2a68](https://github.com/Abdo30004/discord-subscriptions/commit/bae2a6895ead1d5898a5ac855199ebd1b43c0581))

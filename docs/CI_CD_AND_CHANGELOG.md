@@ -55,7 +55,7 @@ The CI pipeline is modularized into **6 focused workflows** that fire **only whe
 
 | Workflow File | Trigger Paths Filter | Environment | Tools | What it Verifies |
 | :--- | :--- | :--- | :--- | :--- |
-| **`ci-go.yml`** | `microservices/**`, `shared/**`, `go.work*`, `**/go.mod`, `**/go.sum` | `ubuntu-latest` | Go 1.23, `golangci-lint` v1.61, `govulncheck` | Unit tests with race detection (`go test -race ./shared/... ./microservices/...`), static code analysis with `golangci-lint`, Go vulnerability scanning with `govulncheck`, & builds 5 service binaries. |
+| **`ci-go.yml`** | `microservices/**`, `shared/**`, `go.work*`, `**/go.mod`, `**/go.sum` | `ubuntu-latest` | Go 1.26, `golangci-lint`, `govulncheck` | Unit tests with race detection (`go test -race ./shared/... ./microservices/...`), static code analysis with `golangci-lint`, Go vulnerability scanning with `govulncheck`, & builds 5 service binaries. |
 | **`ci-frontend.yml`** | `frontend/**` | `ubuntu-latest` | Node.js 20, `npm audit` | Runs `npm ci`, security audit with `npm audit --audit-level=high`, and compiles Next.js 16 Turbopack production build. |
 | **`ci-manager-bot.yml`** | `bots/manager-bot/**` | `ubuntu-latest` | Node.js 20, `npm audit` | Runs `npm ci`, security audit with `npm audit --audit-level=high`, and compiles TypeScript bot code into `dist/` without type errors. |
 | **`ci-infra.yml`** | `docker-compose.yml`, `traefik/**`, `k8s/**`, `scripts/init-databases.sql` | `ubuntu-latest` | Docker & Kustomize | Runs `docker compose config --quiet` and `kubectl kustomize k8s/` syntax validation. |

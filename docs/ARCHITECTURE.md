@@ -79,7 +79,7 @@ flowchart TD
 
 ## 2. Microservice Layer & Clean Architecture
 
-Each microservice is authored in Go 1.23+ and strictly enforces the **Ports and Adapters (Hexagonal / Clean Architecture)** design pattern. This decouples business logic from external frameworks, database drivers, and messaging transports.
+Each microservice is authored in Go 1.26+ and strictly enforces the **Ports and Adapters (Hexagonal / Clean Architecture)** design pattern. This decouples business logic from external frameworks, database drivers, and messaging transports.
 
 ```mermaid
 classDiagram

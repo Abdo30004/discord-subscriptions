@@ -6,7 +6,7 @@
 
 ## 1. Go (Golang) Conventions
 
-- **Go Version**: 1.23+ with multi-module workspace (`go.work`).
+- **Go Version**: 1.26+ with multi-module workspace (`go.work`).
 - **Error Handling**:
   - Always wrap errors with context: `fmt.Errorf("failed to fetch deployment %s: %w", id, err)`.
   - Use custom domain errors in `shared/errors` for business logic (e.g. `ErrNotFound`, `ErrUnauthorized`, `ErrConflict`).

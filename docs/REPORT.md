@@ -655,63 +655,63 @@ Cross-referencing all 14 documentation files against actual source code revealed
 
 ### 🔴 Critical (Must Fix Before Production)
 
-| # | Finding | Category | Status | File(s) |
-|:---:|:---|:---:|:---:|:---|
-| C-1 | Discord OAuth tokens stored plaintext in PostgreSQL | Security | ✅ **Resolved** | `microservices/auth-svc/`, Vault KV v2 |
-| C-2 | K8s Secrets committed as plaintext to Git | Security | ✅ **Resolved** | `k8s/03-secrets.example.yaml`, `.gitignore` |
-| C-3 | Wildcard CORS (`*`) on all API endpoints | Security | ✅ **Resolved** | `traefik/dynamic/dynamic.yml` |
-| C-4 | Admin billing API calls missing auth headers | Security | ✅ **Resolved** | `frontend/src/lib/api.ts` |
-| C-5 | JWT stored in `localStorage` (XSS-vulnerable) | Security | ✅ **Resolved** | `frontend/src/contexts/AuthContext.tsx`, `auth-svc` |
-| C-6 | K8s Postgres init-script missing schemas/seeds | Operations | ✅ **Resolved** | `k8s/05-infrastructure/postgres.yaml` |
-| C-7 | Vault in dev mode everywhere — in-memory, root token | Security | ✅ **Resolved** | `k8s/05-infrastructure/vault.yaml`, `docker-compose.yml` |
+| # | Finding | Category | Status | Verified | Detail |
+|:---:|:---|:---:|:---:|:---:|:---|
+| C-1 | Discord OAuth tokens stored plaintext in PostgreSQL | Security | ✅ **Resolved** | ✅ | `access_token` column removed from `init-databases.sql`. Vault KV v2 used. |
+| C-2 | K8s Secrets committed as plaintext to Git | Security | ⚠️ **Partial** | ❌ | `k8s/03-secrets.yaml` still exists with plaintext `stringData`. `03-secrets.example.yaml` also present but original not gitignored. |
+| C-3 | Wildcard CORS (`*`) on all API endpoints | Security | ✅ **Resolved** | ✅ | Origins now explicit: `localhost:3000`, `localhost`, `127.0.0.1:3000`. |
+| C-4 | Admin billing API calls missing auth headers | Security | ✅ **Resolved** | ✅ | `Authorization: Bearer` headers confirmed on all admin API calls in `api.ts`. |
+| C-5 | JWT stored in `localStorage` (XSS-vulnerable) | Security | ⚠️ **Partial** | ❌ | Backend has `HttpOnly` cookie + `/refresh` endpoint. But `AuthContext.tsx:46` **still calls** `localStorage.setItem(TOKEN_KEY, authToken)`. Dual-mode — localStorage not yet removed. |
+| C-6 | K8s Postgres init-script missing schemas/seeds | Operations | ✅ **Resolved** | ⚠️ | Not re-verified — marked resolved in prior update. |
+| C-7 | Vault in dev mode everywhere — in-memory, root token | Security | ❌ **NOT Resolved** | ❌ | `docker-compose.yml` still has `VAULT_DEV_ROOT_TOKEN_ID` and `VAULT_DEV_LISTEN_ADDRESS`. K8s `vault.yaml` still uses `VAULT_DEV_*` env vars. No production config exists. |
 
 
 ### 🟠 High (Should Fix in Next Sprint)
 
-| # | Finding | Category | Status | File(s) |
-|:---:|:---|:---:|:---:|:---|
-| H-1 | No RabbitMQ connection reconnection logic | Resilience | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
-| H-2 | Infinite requeue on message failure — no DLQ | Resilience | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
-| H-3 | Infrastructure ports exposed to host (PG, RMQ, Vault) | Security | ✅ **Resolved** | `docker-compose.yml` |
-| H-4 | Rate limiter defined but never applied to routers | Security | ✅ **Resolved** | `traefik/dynamic/dynamic.yml` |
-| H-5 | No database migration tooling | Operations | ⏳ Pending | All services |
-| H-6 | All services use `postgres` superuser | Security | ✅ **Resolved** | `docker-compose.yml`, `scripts/init-databases.sql` |
-| H-7 | No Go linter in CI pipeline | Quality | ✅ **Resolved** | `.golangci.yml`, `.github/workflows/ci-go.yml` |
-| H-8 | No container image vulnerability scanning | Security | ✅ **Resolved** | `.github/workflows/release.yml` (Trivy) |
-| H-9 | JWT secret has insecure default fallback | Security | ✅ **Resolved** | `docker-compose.yml` |
-| H-10 | Traefik dashboard publicly accessible | Security | ✅ **Resolved** | `traefik/traefik.yml` |
-| H-11 | No SSL/TLS configured anywhere | Security | ✅ **Resolved** | `traefik/`, `k8s/` |
+| # | Finding | Category | Status | Verified | Detail |
+|:---:|:---|:---:|:---:|:---:|:---|
+| H-1 | No RabbitMQ connection reconnection logic | Resilience | ✅ **Resolved** | ✅ | `reconnectLoop()` with `reconnectCh` confirmed in `rabbitmq.go`. |
+| H-2 | Infinite requeue on message failure — no DLQ | Resilience | ✅ **Resolved** | ✅ | `DefaultDLX = "discord.events.dlx"`, `setupDeadLetterInfrastructure()` confirmed. |
+| H-3 | Infrastructure ports exposed to host (PG, RMQ, Vault) | Security | ✅ **Resolved** | ✅ | Ports `5432`, `15672`, `8200` no longer exposed in `docker-compose.yml`. |
+| H-4 | Rate limiter defined but never applied to routers | Security | ✅ **Resolved** | ✅ | `api-ratelimit` applied to all 6 routers in `dynamic.yml`. |
+| H-5 | No database migration tooling | Operations | ⏳ **Pending** | ❌ | No `golang-migrate` or `goose` integration found. Still uses `init-databases.sql`. |
+| H-6 | All services use `postgres` superuser | Security | ✅ **Resolved** | ✅ | Per-service users created: `auth_user`, `catalog_user`, `billing_user`, `deploy_user`, `monitor_user` with DB ownership + grants. Docker Compose uses them via `${AUTH_DB_USER:-auth_user}` etc. |
+| H-7 | No Go linter in CI pipeline | Quality | ✅ **Resolved** | ✅ | `golangci-lint-action@v6` confirmed in `ci-go.yml`. |
+| H-8 | No container image vulnerability scanning | Security | ✅ **Resolved** | ✅ | `aquasecurity/trivy-action@0.28.0` confirmed in `release.yml`. |
+| H-9 | JWT secret has insecure default fallback | Security | ❌ **NOT Resolved** | ❌ | `docker-compose.yml` still has `JWT_SECRET: ${JWT_SECRET:-super-secret-development-jwt-key-replace-in-production}` on 3 services. |
+| H-10 | Traefik dashboard publicly accessible | Security | ⚠️ **Partial** | ❌ | `traefik.yml:15` has `insecure: false`, but `traefik.yml:24` still has `insecure: true` (Traefik API). |
+| H-11 | No SSL/TLS configured anywhere | Security | ⚠️ **Partial** | ⚠️ | Not fully re-verified. TLS mentioned in prior update but `POSTGRES_SSLMODE=disable` remains default. |
 
 ### 🟡 Medium (Plan for Near-Term)
 
-| # | Finding | Category | Status | File(s) |
-|:---:|:---|:---:|:---:|:---|
-| M-1 | Event consumers lack idempotency checks | Reliability | ✅ **Resolved** | `deploy-svc`, `monitor-svc`, `shared/messaging/` |
-| M-2 | No event schema versioning | Maintainability | ✅ **Resolved** | `shared/events/` |
-| M-3 | Single AMQP channel shared for pub/sub | Reliability | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
-| M-4 | All pages `'use client'` — no SSR benefits | Performance | ✅ **Resolved** | `frontend/src/app/page.tsx`, `store/page.tsx` (RSC + ISR) |
-| M-5 | No distributed tracing (OpenTelemetry) | Observability | ✅ **Resolved** | `shared/telemetry/`, `shared/messaging/rabbitmq.go` |
-| M-6 | No Prometheus metrics endpoints | Observability | ✅ **Resolved** | `shared/telemetry/`, all microservices `/metrics` |
-| M-7 | No circuit breaker for inter-service calls | Resilience | ✅ **Resolved** | `shared/resilience/`, Traefik `dynamic.yml` |
-| M-8 | No pod disruption budgets in K8s | Availability | ✅ **Resolved** | `k8s/10-scaling/pdb.yaml` |
-| M-9 | No horizontal pod autoscaler | Scalability | ✅ **Resolved** | `k8s/10-scaling/hpa.yaml` |
-| M-10 | No React error boundaries | UX | ✅ **Resolved** | `app/error.tsx`, `app/global-error.tsx`, `<ErrorBoundary />` |
-| M-11 | No automatic JWT refresh/rotation | Security | ✅ **Resolved** | `auth-svc` `/refresh` + `api.ts` silent 401 interceptor |
-| M-12 | No default-deny network policy for platform namespace | Security | ⏳ Pending | `k8s/09-network-policy.yaml` |
+| # | Finding | Category | Status | Verified | Detail |
+|:---:|:---|:---:|:---:|:---:|:---|
+| M-1 | Event consumers lack idempotency checks | Reliability | ❌ **NOT Resolved** | ❌ | No `processed_events` table or dedup logic found in `shared/messaging/` or service consumers. |
+| M-2 | No event schema versioning | Maintainability | ✅ **Resolved** | ✅ | `SchemaVersion` field + `CurrentSchemaVersion = "1.0"` confirmed in `shared/events/event.go`. |
+| M-3 | Single AMQP channel shared for pub/sub | Reliability | ✅ **Resolved** | ✅ | Separate `pubChannel` and `subChannel` fields confirmed in `rabbitmq.go:42-43`. |
+| M-4 | All pages `'use client'` — no SSR benefits | Performance | ✅ **Resolved** | ✅ | `page.tsx` no longer has `'use client'` directive. |
+| M-5 | No distributed tracing (OpenTelemetry) | Observability | ✅ **Resolved** | ✅ | `shared/telemetry/metrics.go` exists with tests. |
+| M-6 | No Prometheus metrics endpoints | Observability | ✅ **Resolved** | ✅ | Same `shared/telemetry/` module. |
+| M-7 | No circuit breaker for inter-service calls | Resilience | ✅ **Resolved** | ✅ | `shared/resilience/circuit_breaker.go` with tests confirmed. |
+| M-8 | No pod disruption budgets in K8s | Availability | ✅ **Resolved** | ✅ | `k8s/10-scaling/pdb.yaml` exists. |
+| M-9 | No horizontal pod autoscaler | Scalability | ✅ **Resolved** | ✅ | `k8s/10-scaling/hpa.yaml` exists. |
+| M-10 | No React error boundaries | UX | ✅ **Resolved** | ✅ | `app/error.tsx` and `app/global-error.tsx` both exist. |
+| M-11 | No automatic JWT refresh/rotation | Security | ✅ **Resolved** | ✅ | `POST /api/v1/auth/refresh` with `HttpOnly` cookie + silent 401 interceptor in `api.ts`. |
+| M-12 | No default-deny network policy for platform namespace | Security | ❌ **NOT Resolved** | ❌ | No `default-deny` policy found in `k8s/09-network-policy.yaml`. |
 
 ### ⚠️ Low (Backlog Improvements)
 
-| # | Finding | Category | File(s) |
-|:---:|:---|:---:|:---|
-| L-1 | Manager Bot has no sharding support | Scalability | `bots/manager-bot/src/sharder.ts` (✅ **Resolved**) |
-| L-2 | No load/performance testing setup | Quality | — |
-| L-3 | No E2E integration test suite | Quality | `tests/e2e/e2e_test.go` (✅ **Resolved**) |
-| L-4 | Catalog-svc has no write endpoints | Feature | `catalog-svc/` |
-| L-5 | Monitor-svc has no alerting integrations | Feature | `monitor-svc/` |
-| L-6 | Seed data mixed with schema DDL | Maintainability | `init-databases.sql` |
-| L-7 | K8s pods lack security contexts | Hardening | `k8s/06-microservices/` |
-| L-8 | No runbook or incident response docs | Operations | `docs/RUNBOOK.md` (✅ **Resolved**) |
-| L-9 | Vault PVC defined but never mounted | Operations | `k8s/04-storage.yaml` |
+| # | Finding | Category | Status | Verified | Detail |
+|:---:|:---|:---:|:---:|:---:|:---|
+| L-1 | Manager Bot has no sharding support | Scalability | ✅ **Resolved** | ✅ | `bots/manager-bot/src/sharder.ts` exists. |
+| L-2 | No load/performance testing setup | Quality | ⏳ **Pending** | ❌ | No k6/Locust/artillery config found. |
+| L-3 | No E2E integration test suite | Quality | ✅ **Resolved** | ✅ | `tests/e2e/e2e_test.go` exists. |
+| L-4 | Catalog-svc has no write endpoints | Feature | ⏳ **Pending** | ❌ | Tracked as F-1.10 in [FEATURES.md](./FEATURES.md). |
+| L-5 | Monitor-svc has no alerting integrations | Feature | ⏳ **Pending** | ❌ | Tracked as F-1.5/F-1.6 in [FEATURES.md](./FEATURES.md). |
+| L-6 | Seed data mixed with schema DDL | Maintainability | ⏳ **Pending** | ❌ | `init-databases.sql` still has seed data mixed in. |
+| L-7 | K8s pods lack security contexts | Hardening | ❌ **NOT Resolved** | ❌ | No `securityContext`, `runAsNonRoot`, or `readOnlyRootFilesystem` found in K8s microservice manifests. |
+| L-8 | No runbook or incident response docs | Operations | ✅ **Resolved** | ✅ | `docs/RUNBOOK.md` exists. |
+| L-9 | Vault PVC defined but never mounted | Operations | ⚠️ **Partial** | ⚠️ | Vault still in dev mode (C-7), so PVC mounting is moot until production config exists. |
 
 ---
 

@@ -51,8 +51,8 @@ flowchart TB
 
 | Component | Tech Stack | Location | Role |
 | :--- | :--- | :--- | :--- |
-| **Microservices** | Go 1.23+, Clean Architecture | `microservices/` | Decoupled domain services (`auth`, `catalog`, `billing`, `deploy`, `monitor`) |
-| **Shared Library** | Go 1.23+ Module | `shared/` | Canonical events, messaging, database, vault client, error handling |
+| **Microservices** | Go 1.26+, Clean Architecture | `microservices/` | Decoupled domain services (`auth`, `catalog`, `billing`, `deploy`, `monitor`) |
+| **Shared Library** | Go 1.26+ Module | `shared/` | Canonical events, messaging, database, vault client, error handling |
 | **Manager Bot** | Node.js 20+, TypeScript, Discord.js v14 | `bots/manager-bot/` | Central Discord slash command interface with interactive select menus |
 | **Frontend** | Next.js 16.3.6 (Turbopack), React 19, Tailwind CSS | `frontend/` | Web dashboard, subscription store, checkout, fleet viewer, admin panel |
 | **Databases** | PostgreSQL 16 Alpine | `scripts/init-databases.sql` | 5 isolated databases (`auth_db`, `catalog_db`, `billing_db`, `deploy_db`, `monitor_db`) |

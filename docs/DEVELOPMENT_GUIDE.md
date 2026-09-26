@@ -7,7 +7,7 @@ This guide provides step-by-step instructions for setting up the local developme
 ## 1. Prerequisites & Tooling
 
 Ensure the following tools are installed on your host system:
-- **Go**: Version 1.23 or newer
+- **Go**: Version 1.26 or newer
 - **Node.js**: Version 20.x or newer (npm v10+)
 - **Docker & Docker Compose**: Docker Desktop or Docker Engine v24+
 - **PostgreSQL Client (Optional)**: `psql` for database inspection

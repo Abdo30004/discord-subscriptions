@@ -14,11 +14,11 @@ This skill provides operational procedures, build commands, and debugging runboo
 
 | Component | Port | Technology | Database / Backend |
 | :--- | :--- | :--- | :--- |
-| **auth-svc** | `:8080` | Go 1.23 REST API | `auth_db` |
-| **catalog-svc** | `:8081` | Go 1.23 REST API | `catalog_db` |
-| **billing-svc** | `:8082` | Go 1.23 REST API | `billing_db` + RabbitMQ |
-| **deploy-svc** | `:8083` | Go 1.23 REST API | `deploy_db` + Vault + K8s |
-| **monitor-svc** | `:8084` | Go 1.23 REST API | `monitor_db` + RabbitMQ |
+| **auth-svc** | `:8080` | Go 1.26 REST API | `auth_db` |
+| **catalog-svc** | `:8081` | Go 1.26 REST API | `catalog_db` |
+| **billing-svc** | `:8082` | Go 1.26 REST API | `billing_db` + RabbitMQ |
+| **deploy-svc** | `:8083` | Go 1.26 REST API | `deploy_db` + Vault + K8s |
+| **monitor-svc** | `:8084` | Go 1.26 REST API | `monitor_db` + RabbitMQ |
 | **manager-bot** | Gateway | TypeScript (Discord.js v14) | REST Client |
 | **frontend** | `:3000` | Next.js 16.3.6 (Turbopack) | REST Client |
 | **PostgreSQL** | `:5432` | PostgreSQL 16 Alpine | 5 isolated databases |
