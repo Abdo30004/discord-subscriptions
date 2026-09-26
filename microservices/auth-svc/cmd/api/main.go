@@ -51,7 +51,7 @@ func main() {
 	userRepo := repositories.NewPostgresUserRepository(db)
 	discordClient := discord.NewClient(cfg.DiscordClientID, cfg.DiscordClientSecret, log)
 	tokenMgr := jwtAdapter.NewManager(cfg.JWTSecret, 7*24*time.Hour)
-	authService := services.NewAuthService(userRepo, discordClient, tokenMgr, log)
+	authService := services.NewAuthService(userRepo, discordClient, tokenMgr, cfg.SuperAdminIDs, log)
 
 	// 3. Health Checker with PostgreSQL ping probe
 	healthChecker := health.NewChecker("auth-svc", "1.0.0")

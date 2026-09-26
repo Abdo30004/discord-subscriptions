@@ -16,13 +16,17 @@ type User struct {
 	ID             string    `json:"id"` // Discord Snowflake
 	Username       string    `json:"username"`
 	GlobalName     string    `json:"global_name,omitempty"`
-	Avatar         string    `json:"avatar,omitempty"`
-	Email          string    `json:"email,omitempty"`
-	AccessToken    string    `json:"-"`
-	RefreshToken   string    `json:"-"`
-	TokenExpiresAt time.Time `json:"-"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	Avatar         string     `json:"avatar,omitempty"`
+	Email          string     `json:"email,omitempty"`
+	IsAdmin        bool       `json:"is_admin"`
+	IsSuperAdmin   bool       `json:"is_super_admin"`
+	AdminPromotedAt *time.Time `json:"admin_promoted_at,omitempty"`
+	AdminPromotedBy string     `json:"admin_promoted_by,omitempty"`
+	AccessToken    string     `json:"-"`
+	RefreshToken   string     `json:"-"`
+	TokenExpiresAt time.Time  `json:"-"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 // Validate checks user domain invariants.

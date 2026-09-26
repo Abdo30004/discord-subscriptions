@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/discord-subscriptions/auth-svc/internal/core/ports"
+	sharedErrors "github.com/discord-subscriptions/shared/errors"
 	"github.com/discord-subscriptions/shared/health"
 )
 
@@ -15,9 +17,8 @@ type CallbackRequest struct {
 	RedirectURI string `json:"redirect_uri"`
 }
 
-type DevLoginRequest struct {
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
+type PromoteAdminRequest struct {
+	DiscordID string `json:"discord_id"`
 }
 
 type HTTPHandler struct {
@@ -49,7 +50,10 @@ func (h *HTTPHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/discord/callback", h.Callback)
 	mux.HandleFunc("GET /api/v1/auth/me", h.GetProfile)
 	mux.HandleFunc("GET /api/v1/auth/guilds", h.GetGuilds)
-	mux.HandleFunc("POST /api/v1/auth/dev-login", h.DevLogin)
+	mux.HandleFunc("GET /api/v1/auth/admins", h.ListAdmins)
+	mux.HandleFunc("GET /api/v1/auth/users/search", h.SearchUsers)
+	mux.HandleFunc("POST /api/v1/auth/admins", h.PromoteAdmin)
+	mux.HandleFunc("DELETE /api/v1/auth/admins/{discordId}", h.RevokeAdmin)
 }
 
 func (h *HTTPHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
@@ -138,18 +142,128 @@ func (h *HTTPHandler) GetGuilds(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *HTTPHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
-	var req DevLoginRequest
-	_ = json.NewDecoder(r.Body).Decode(&req)
+func (h *HTTPHandler) ListAdmins(w http.ResponseWriter, r *http.Request) {
+	token := h.extractBearerToken(r)
+	if token == "" {
+		h.respondError(w, http.StatusUnauthorized, "Missing authorization token")
+		return
+	}
 
-	session, err := h.service.DevLogin(r.Context(), req.UserID, req.Username)
+	user, err := h.service.GetUserSession(r.Context(), token)
 	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, err.Error())
+		h.respondError(w, http.StatusUnauthorized, "Invalid or expired session")
+		return
+	}
+
+	admins, err := h.service.ListAdmins(r.Context(), user.ID)
+	if err != nil {
+		if errors.Is(err, sharedErrors.ErrUnauthorized) {
+			h.respondError(w, http.StatusForbidden, "Forbidden: administrator privileges required")
+			return
+		}
+		h.logger.Error("failed listing admins", slog.String("error", err.Error()))
+		h.respondError(w, http.StatusInternalServerError, "Failed to list admins")
 		return
 	}
 
 	h.respondJSON(w, http.StatusOK, map[string]any{
-		"data": session,
+		"data": admins,
+	})
+}
+
+func (h *HTTPHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	token := h.extractBearerToken(r)
+	if token == "" {
+		h.respondError(w, http.StatusUnauthorized, "Missing authorization token")
+		return
+	}
+
+	user, err := h.service.GetUserSession(r.Context(), token)
+	if err != nil {
+		h.respondError(w, http.StatusUnauthorized, "Invalid or expired session")
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	users, err := h.service.SearchUsers(r.Context(), user.ID, query)
+	if err != nil {
+		if errors.Is(err, sharedErrors.ErrUnauthorized) {
+			h.respondError(w, http.StatusForbidden, "Forbidden: super administrator privileges required")
+			return
+		}
+		h.logger.Error("failed searching users", slog.String("error", err.Error()))
+		h.respondError(w, http.StatusInternalServerError, "Failed to search users")
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]any{
+		"data": users,
+	})
+}
+
+func (h *HTTPHandler) PromoteAdmin(w http.ResponseWriter, r *http.Request) {
+	token := h.extractBearerToken(r)
+	if token == "" {
+		h.respondError(w, http.StatusUnauthorized, "Missing authorization token")
+		return
+	}
+
+	user, err := h.service.GetUserSession(r.Context(), token)
+	if err != nil {
+		h.respondError(w, http.StatusUnauthorized, "Invalid or expired session")
+		return
+	}
+
+	var req PromoteAdminRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.DiscordID) == "" {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body: discord_id is required")
+		return
+	}
+
+	if err := h.service.PromoteAdmin(r.Context(), user.ID, strings.TrimSpace(req.DiscordID)); err != nil {
+		if errors.Is(err, sharedErrors.ErrUnauthorized) {
+			h.respondError(w, http.StatusForbidden, "Forbidden: only Super Admins can promote administrators")
+			return
+		}
+		h.respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]any{
+		"message": "User successfully promoted to administrator",
+	})
+}
+
+func (h *HTTPHandler) RevokeAdmin(w http.ResponseWriter, r *http.Request) {
+	token := h.extractBearerToken(r)
+	if token == "" {
+		h.respondError(w, http.StatusUnauthorized, "Missing authorization token")
+		return
+	}
+
+	user, err := h.service.GetUserSession(r.Context(), token)
+	if err != nil {
+		h.respondError(w, http.StatusUnauthorized, "Invalid or expired session")
+		return
+	}
+
+	targetDiscordID := strings.TrimSpace(r.PathValue("discordId"))
+	if targetDiscordID == "" {
+		h.respondError(w, http.StatusBadRequest, "Target discord ID is required in URL path")
+		return
+	}
+
+	if err := h.service.RevokeAdmin(r.Context(), user.ID, targetDiscordID); err != nil {
+		if errors.Is(err, sharedErrors.ErrUnauthorized) {
+			h.respondError(w, http.StatusForbidden, "Forbidden: only Super Admins can revoke administrators")
+			return
+		}
+		h.respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]any{
+		"message": "Admin privileges revoked successfully",
 	})
 }
 

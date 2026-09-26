@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/discord-subscriptions/shared/config"
 	"github.com/discord-subscriptions/shared/database"
 )
@@ -12,10 +14,23 @@ type Config struct {
 	DiscordClientID     string
 	DiscordClientSecret string
 	JWTSecret           string
+	SuperAdminIDs       []string
 	DB                  database.Config
 }
 
 func Load() Config {
+	superAdminRaw := config.GetString("SUPER_ADMIN_DISCORD_IDS", "")
+	if superAdminRaw == "" {
+		superAdminRaw = config.GetString("SUPER_ADMIN_DISCORD_ID", "")
+	}
+	var superAdminIDs []string
+	for _, id := range strings.Split(superAdminRaw, ",") {
+		trimmed := strings.TrimSpace(id)
+		if trimmed != "" {
+			superAdminIDs = append(superAdminIDs, trimmed)
+		}
+	}
+
 	return Config{
 		Port:                config.GetInt("AUTH_SVC_PORT", 8080),
 		Environment:         config.GetString("ENV", "development"),
@@ -23,6 +38,7 @@ func Load() Config {
 		DiscordClientID:     config.GetString("DISCORD_CLIENT_ID", ""),
 		DiscordClientSecret: config.GetString("DISCORD_CLIENT_SECRET", ""),
 		JWTSecret:           config.GetString("JWT_SECRET", "super-secret-development-jwt-key-replace-in-production"),
+		SuperAdminIDs:       superAdminIDs,
 		DB: database.Config{
 			Host:     config.GetString("POSTGRES_HOST", "localhost"),
 			Port:     config.GetInt("POSTGRES_PORT", 5432),

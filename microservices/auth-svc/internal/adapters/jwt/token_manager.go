@@ -14,10 +14,12 @@ var (
 )
 
 type JWTClaims struct {
-	UserID     string `json:"user_id"`
-	Username   string `json:"username"`
-	Avatar     string `json:"avatar"`
-	GlobalName string `json:"global_name,omitempty"`
+	UserID       string `json:"user_id"`
+	Username     string `json:"username"`
+	Avatar       string `json:"avatar"`
+	GlobalName   string `json:"global_name,omitempty"`
+	IsAdmin      bool   `json:"is_admin"`
+	IsSuperAdmin bool   `json:"is_super_admin"`
 	jwt.RegisteredClaims
 }
 
@@ -42,10 +44,12 @@ func (m *Manager) GenerateToken(user domain.User) (string, time.Time, error) {
 	expiresAt := time.Now().UTC().Add(m.tokenDuration)
 
 	claims := JWTClaims{
-		UserID:     user.ID,
-		Username:   user.Username,
-		Avatar:     user.Avatar,
-		GlobalName: user.GlobalName,
+		UserID:       user.ID,
+		Username:     user.Username,
+		Avatar:       user.Avatar,
+		GlobalName:   user.GlobalName,
+		IsAdmin:      user.IsAdmin,
+		IsSuperAdmin: user.IsSuperAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID,
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
@@ -82,9 +86,11 @@ func (m *Manager) ValidateToken(tokenString string) (*domain.UserClaims, error) 
 	}
 
 	return &domain.UserClaims{
-		UserID:     claims.UserID,
-		Username:   claims.Username,
-		Avatar:     claims.Avatar,
-		GlobalName: claims.GlobalName,
+		UserID:       claims.UserID,
+		Username:     claims.Username,
+		Avatar:       claims.Avatar,
+		GlobalName:   claims.GlobalName,
+		IsAdmin:      claims.IsAdmin,
+		IsSuperAdmin: claims.IsSuperAdmin,
 	}, nil
 }

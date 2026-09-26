@@ -2,6 +2,7 @@ package services_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -19,7 +20,39 @@ func (m *mockUserRepo) Upsert(ctx context.Context, user *domain.User) error {
 }
 
 func (m *mockUserRepo) GetByID(ctx context.Context, id string) (*domain.User, error) {
-	return m.users[id], nil
+	u, ok := m.users[id]
+	if !ok {
+		return nil, errors.New("user not found")
+	}
+	return u, nil
+}
+
+func (m *mockUserRepo) ListAdmins(ctx context.Context) ([]domain.User, error) {
+	var list []domain.User
+	for _, u := range m.users {
+		if u.IsAdmin {
+			list = append(list, *u)
+		}
+	}
+	return list, nil
+}
+
+func (m *mockUserRepo) SearchUsers(ctx context.Context, query string, limit int) ([]domain.User, error) {
+	var list []domain.User
+	for _, u := range m.users {
+		list = append(list, *u)
+	}
+	return list, nil
+}
+
+func (m *mockUserRepo) SetAdmin(ctx context.Context, discordID string, isAdmin bool, promotedBy string) error {
+	u, ok := m.users[discordID]
+	if !ok {
+		return errors.New("user not found")
+	}
+	u.IsAdmin = isAdmin
+	u.AdminPromotedBy = promotedBy
+	return nil
 }
 
 type mockDiscordClient struct {
@@ -63,7 +96,7 @@ func TestAuthService_AuthenticateWithCode(t *testing.T) {
 	discordMock := &mockDiscordClient{}
 	tokenMock := &mockTokenMgr{}
 
-	svc := services.NewAuthService(repo, discordMock, tokenMock, nil)
+	svc := services.NewAuthService(repo, discordMock, tokenMock, []string{"super-admin-999"}, nil)
 
 	session, err := svc.AuthenticateWithCode(context.Background(), "auth_code_xyz", "http://localhost:3000/callback")
 	if err != nil {
@@ -102,7 +135,7 @@ func TestAuthService_GetUserManageableGuilds(t *testing.T) {
 		},
 	}
 
-	svc := services.NewAuthService(repo, discordMock, &mockTokenMgr{}, nil)
+	svc := services.NewAuthService(repo, discordMock, &mockTokenMgr{}, []string{"super-admin-999"}, nil)
 
 	manageable, err := svc.GetUserManageableGuilds(context.Background(), "discord-12345")
 	if err != nil {
@@ -115,5 +148,72 @@ func TestAuthService_GetUserManageableGuilds(t *testing.T) {
 
 	if manageable[0].ID != "g1" || manageable[1].ID != "g3" {
 		t.Fatalf("unexpected filtered guilds: %v", manageable)
+	}
+}
+
+func TestAuthService_SuperAdminAndPromoteFlow(t *testing.T) {
+	superAdminID := "super-111"
+	normalUserID := "user-222"
+	repo := &mockUserRepo{
+		users: map[string]*domain.User{
+			superAdminID: {
+				ID:       superAdminID,
+				Username: "SuperOwner",
+			},
+			normalUserID: {
+				ID:       normalUserID,
+				Username: "ModeratorBob",
+			},
+		},
+	}
+
+	svc := services.NewAuthService(repo, &mockDiscordClient{}, &mockTokenMgr{}, []string{superAdminID}, nil)
+
+	// Verify super admin check
+	if !svc.IsSuperAdmin(superAdminID) {
+		t.Fatalf("expected %s to be recognized as super admin", superAdminID)
+	}
+	if svc.IsSuperAdmin(normalUserID) {
+		t.Fatalf("expected %s NOT to be recognized as super admin", normalUserID)
+	}
+
+	// Normal user attempts to promote someone -> should be rejected
+	err := svc.PromoteAdmin(context.Background(), normalUserID, normalUserID)
+	if err == nil {
+		t.Fatalf("expected unauthorized error when non-super admin attempts promotion")
+	}
+
+	// Super admin promotes normal user -> should succeed
+	err = svc.PromoteAdmin(context.Background(), superAdminID, normalUserID)
+	if err != nil {
+		t.Fatalf("super admin promotion failed: %v", err)
+	}
+
+	if !repo.users[normalUserID].IsAdmin {
+		t.Fatalf("expected user %s to be marked as admin", normalUserID)
+	}
+
+	// Verify ListAdmins
+	admins, err := svc.ListAdmins(context.Background(), superAdminID)
+	if err != nil {
+		t.Fatalf("failed listing admins: %v", err)
+	}
+	if len(admins) < 2 {
+		t.Fatalf("expected at least 2 admins in list (super + promoted), got %d", len(admins))
+	}
+
+	// Super admin revokes normal user
+	err = svc.RevokeAdmin(context.Background(), superAdminID, normalUserID)
+	if err != nil {
+		t.Fatalf("super admin revoking failed: %v", err)
+	}
+	if repo.users[normalUserID].IsAdmin {
+		t.Fatalf("expected user %s admin privileges to be revoked", normalUserID)
+	}
+
+	// Attempting to revoke super admin should fail
+	err = svc.RevokeAdmin(context.Background(), superAdminID, superAdminID)
+	if err == nil {
+		t.Fatalf("expected error when trying to revoke super admin")
 	}
 }

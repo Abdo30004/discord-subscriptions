@@ -11,6 +11,9 @@ import (
 type UserRepository interface {
 	Upsert(ctx context.Context, user *domain.User) error
 	GetByID(ctx context.Context, id string) (*domain.User, error)
+	ListAdmins(ctx context.Context) ([]domain.User, error)
+	SearchUsers(ctx context.Context, query string, limit int) ([]domain.User, error)
+	SetAdmin(ctx context.Context, discordID string, isAdmin bool, promotedBy string) error
 }
 
 // DiscordClient abstracts communication with Discord OAuth2 and REST APIs.
@@ -33,5 +36,9 @@ type AuthService interface {
 	AuthenticateWithCode(ctx context.Context, code, redirectURI string) (*domain.AuthSession, error)
 	GetUserSession(ctx context.Context, token string) (*domain.User, error)
 	GetUserManageableGuilds(ctx context.Context, userID string) ([]domain.Guild, error)
-	DevLogin(ctx context.Context, mockUserID, mockUsername string) (*domain.AuthSession, error)
+	ListAdmins(ctx context.Context, requestingUserID string) ([]domain.User, error)
+	SearchUsers(ctx context.Context, requestingUserID, query string) ([]domain.User, error)
+	PromoteAdmin(ctx context.Context, requestingUserID, targetDiscordID string) error
+	RevokeAdmin(ctx context.Context, requestingUserID, targetDiscordID string) error
+	IsSuperAdmin(discordID string) bool
 }
