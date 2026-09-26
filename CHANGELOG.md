@@ -46,6 +46,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🤖 CI/CD Automation
 
+- upgrade diagram validation job to node 24 for mermaid 12 compatibility ([80d9cc7](https://github.com/Abdo30004/discord-subscriptions/commit/80d9cc77820163caafa48ad9a5d5a82ea38b5dd4))
 - add automated mermaid diagram validator script and ci job ([bae2a68](https://github.com/Abdo30004/discord-subscriptions/commit/bae2a6895ead1d5898a5ac855199ebd1b43c0581))
 - configure multi-workspace go cache dependency pattern ([42900ba](https://github.com/Abdo30004/discord-subscriptions/commit/42900bab3969d4349e1312d6342fc25f35d3ca8e))
 
