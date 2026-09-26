@@ -1,0 +1,13 @@
+# .cursorrules - Cursor & Multi-IDE AI Rules
+
+# Reference the root AGENTS.md for full architecture details:
+# file:///C:/Users/kasep/Desktop/discord-subscriptions/AGENTS.md
+
+- Follow Go Clean Architecture for all microservices in `microservices/`. Keep domain models pure in `internal/core/domain`.
+- Respect Database-per-Service: Do not join across databases (`auth_db`, `catalog_db`, `billing_db`, `deploy_db`, `monitor_db`).
+- All multi-subscription fleet logic must use `instance_label` and unique deployment pod names `bot-{guildId}-{depShortId}`.
+- Zero-setup tokens must be stored in HashiCorp Vault, never plain text in PostgreSQL.
+- Discord Manager Bot commands (`/status`, `/restart`, `/bot`) must use `StringSelectMenuBuilder` dropdowns when multiple bots exist.
+- ALWAYS update corresponding documentation in `./docs/` whenever an endpoint, schema, event, bot command, or UI flow is modified.
+- Run `go test ./...` and `npm run build` to verify changes before marking tasks complete.
+- Follow Conventional Commits format (`feat`, `fix`, `docs`, etc.) and progressive staging per `.agent/rules/git-workflow.md`.
