@@ -44,6 +44,9 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🐛 Bug Fixes & Resilience
 
+- **docker**: verify rabbitmq port connectivity in healthcheck ([0967118](https://github.com/Abdo30004/discord-subscriptions/commit/0967118f084e7da92b2527da9a5958fbc85588f7))
+- **microservices**: distinguish pending and active broker connections in startup logs ([7c07414](https://github.com/Abdo30004/discord-subscriptions/commit/7c0741467d207bd4ca38cca9b1c7ac02a0d8fd95))
+- **shared**: enable background rabbitmq reconnection loop and harden health check timeouts ([861204b](https://github.com/Abdo30004/discord-subscriptions/commit/861204b2cd533827dbbccebff5e87fde14fc0470))
 - **docker**: resolve standalone module checksums for container image builds ([a835b59](https://github.com/Abdo30004/discord-subscriptions/commit/a835b59780e1b8f810489f3de1982385ed6abf60))
 - **shared**: promote telemetry dependencies and synchronize workspace modules ([5bb3dda](https://github.com/Abdo30004/discord-subscriptions/commit/5bb3dda2c53aa6d0c901b281135130ed997961e0))
 - **deps**: upgrade pgx driver to v5.11.0 to resolve GO-2026-5004 ([4989d41](https://github.com/Abdo30004/discord-subscriptions/commit/4989d412e92088aed40aea8d6b5e770c4ff19ee8))
