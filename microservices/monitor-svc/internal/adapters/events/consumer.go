@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/discord-subscriptions/monitor-svc/internal/core/ports"
 	"github.com/discord-subscriptions/shared/events"
@@ -15,6 +16,7 @@ type EventConsumer struct {
 	service ports.MonitorService
 	client  messaging.Subscriber
 	logger  *slog.Logger
+	dedup   *messaging.EventDeduplicator
 }
 
 // NewEventConsumer constructs a subscriber for deployment and bot lifecycle events.
@@ -26,6 +28,7 @@ func NewEventConsumer(service ports.MonitorService, client messaging.Subscriber,
 		service: service,
 		client:  client,
 		logger:  logger,
+		dedup:   messaging.NewEventDeduplicator(24 * time.Hour),
 	}
 }
 
@@ -47,6 +50,15 @@ func (c *EventConsumer) handleDeploymentCompleted(ctx context.Context, payload [
 	var evt events.DeploymentCompletedEvent
 	if err := json.Unmarshal(payload, &evt); err != nil {
 		return fmt.Errorf("failed unmarshaling DeploymentCompletedEvent: %w", err)
+	}
+
+	if c.dedup != nil && c.dedup.IsDuplicate(evt.GetID()) {
+		c.logger.Warn("duplicate deployment completed event ignored",
+			slog.String("event_id", evt.GetID()),
+			slog.String("dep_id", evt.DeploymentID),
+			slog.String("guild_id", evt.GuildID),
+		)
+		return nil
 	}
 
 	c.logger.Info("registering newly deployed bot for health monitoring",

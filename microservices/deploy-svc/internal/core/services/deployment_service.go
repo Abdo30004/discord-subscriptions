@@ -71,6 +71,18 @@ func (s *DeploymentServiceImpl) ProvisionBot(
 		instanceLabel = "Default"
 	}
 
+	// 0. Domain idempotency guard: check if deployment already active for this subscription
+	if existing, err := s.repo.GetBySubscriptionID(ctx, subID); err == nil && existing != nil {
+		if existing.Status == domain.StatusRunning || existing.Status == domain.StatusDeploying {
+			s.logger.Info("deployment already active for subscription, returning existing instance",
+				slog.String("sub_id", subID),
+				slog.String("deployment_id", existing.ID),
+				slog.String("status", string(existing.Status)),
+			)
+			return existing, nil
+		}
+	}
+
 	var clientID string
 
 	// 1. If Zero-Setup, claim pre-warmed token from the pool

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/discord-subscriptions/deploy-svc/internal/core/ports"
 	"github.com/discord-subscriptions/shared/events"
@@ -15,6 +16,7 @@ type EventConsumer struct {
 	subscriber ports.DeploymentService
 	client     messaging.Subscriber
 	logger     *slog.Logger
+	dedup      *messaging.EventDeduplicator
 }
 
 // NewEventConsumer creates an event listener for deployment and subscription events.
@@ -26,6 +28,7 @@ func NewEventConsumer(service ports.DeploymentService, client messaging.Subscrib
 		subscriber: service,
 		client:     client,
 		logger:     logger,
+		dedup:      messaging.NewEventDeduplicator(24 * time.Hour),
 	}
 }
 
@@ -55,6 +58,15 @@ func (c *EventConsumer) handleDeploymentRequested(ctx context.Context, payload [
 		return fmt.Errorf("failed unmarshaling DeploymentRequestedEvent: %w", err)
 	}
 
+	if c.dedup != nil && c.dedup.IsDuplicate(evt.GetID()) {
+		c.logger.Warn("duplicate deployment requested event ignored",
+			slog.String("event_id", evt.GetID()),
+			slog.String("sub_id", evt.SubscriptionID),
+			slog.String("guild_id", evt.GuildID),
+		)
+		return nil
+	}
+
 	c.logger.Info("received deployment requested event",
 		slog.String("sub_id", evt.SubscriptionID),
 		slog.String("guild_id", evt.GuildID),
@@ -79,6 +91,15 @@ func (c *EventConsumer) handleSubscriptionCancelled(ctx context.Context, payload
 	var evt events.SubscriptionCancelledEvent
 	if err := json.Unmarshal(payload, &evt); err != nil {
 		return fmt.Errorf("failed unmarshaling SubscriptionCancelledEvent: %w", err)
+	}
+
+	if c.dedup != nil && c.dedup.IsDuplicate(evt.GetID()) {
+		c.logger.Warn("duplicate subscription cancelled event ignored",
+			slog.String("event_id", evt.GetID()),
+			slog.String("sub_id", evt.SubscriptionID),
+			slog.String("guild_id", evt.GuildID),
+		)
+		return nil
 	}
 
 	c.logger.Info("received subscription cancelled event, stopping bot",

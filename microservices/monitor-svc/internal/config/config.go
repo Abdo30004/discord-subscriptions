@@ -34,8 +34,8 @@ func Load() Config {
 		DB: database.Config{
 			Host:     config.GetString("POSTGRES_HOST", "localhost"),
 			Port:     config.GetInt("POSTGRES_PORT", 5432),
-			User:     config.GetString("POSTGRES_USER", "postgres"),
-			Password: config.GetString("POSTGRES_PASSWORD", "postgres"),
+			User:     config.GetString("POSTGRES_USER", "monitor_user"),
+			Password: config.GetString("POSTGRES_PASSWORD", "monitor_pass"),
 			Database: config.GetString("MONITOR_DB_NAME", "monitor_db"),
 			SSLMode:  config.GetString("POSTGRES_SSLMODE", "disable"),
 		},
