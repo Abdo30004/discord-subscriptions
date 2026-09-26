@@ -34,6 +34,9 @@ spec:
                   key: VAULT_DEV_ROOT_TOKEN
             - name: VAULT_DEV_LISTEN_ADDRESS
               value: "0.0.0.0:8200"
+          volumeMounts:
+            - name: vault-storage
+              mountPath: /vault/data
           resources:
             requests:
               cpu: 50m
@@ -53,6 +56,10 @@ spec:
               port: 8200
             initialDelaySeconds: 15
             periodSeconds: 10
+      volumes:
+        - name: vault-storage
+          persistentVolumeClaim:
+            claimName: vault-pvc
 ---
 apiVersion: v1
 kind: Service

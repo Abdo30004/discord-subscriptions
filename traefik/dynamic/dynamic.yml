@@ -11,9 +11,16 @@ http:
           - DELETE
           - OPTIONS
         accessControlAllowHeaders:
-          - "*"
+          - Authorization
+          - Content-Type
+          - Accept
+          - X-Requested-With
         accessControlAllowOriginList:
-          - "*"
+          - "http://localhost:3000"
+          - "http://localhost"
+          - "http://127.0.0.1:3000"
+          - "http://127.0.0.1"
+        accessControlAllowCredentials: true
         accessControlMaxAge: 100
         addVaryHeader: true
 
@@ -25,8 +32,24 @@ http:
         average: 100
         burst: 50
 
+    dashboard-auth:
+      basicAuth:
+        users:
+          # admin:admin (htpasswd formatted)
+          - "admin:$$apr1$$q8rXOeln$$ph/DU.n9A314Y1q629zCF/"
+
   # Routers
   routers:
+    # 0. Traefik Secured Dashboard
+    traefik-dashboard:
+      entryPoints:
+        - traefik
+      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      service: api@internal
+      middlewares:
+        - dashboard-auth
+      priority: 1000
+
     # 1. auth-svc: OAuth2 & JWT
     auth-router:
       entryPoints:
@@ -36,6 +59,7 @@ http:
       middlewares:
         - cors-headers
         - compress
+        - api-ratelimit
       priority: 100
 
     # 2. catalog-svc: Bot templates & Plans
@@ -47,6 +71,7 @@ http:
       middlewares:
         - cors-headers
         - compress
+        - api-ratelimit
       priority: 100
 
     # 3. billing-svc: Subscriptions, Promos, Vouchers, Webhooks
@@ -58,6 +83,7 @@ http:
       middlewares:
         - cors-headers
         - compress
+        - api-ratelimit
       priority: 100
 
     # 4. deploy-svc: Deployments & Token Pool
@@ -69,6 +95,7 @@ http:
       middlewares:
         - cors-headers
         - compress
+        - api-ratelimit
       priority: 100
 
     # 5. monitor-svc: Targets & Health Logs
@@ -80,6 +107,7 @@ http:
       middlewares:
         - cors-headers
         - compress
+        - api-ratelimit
       priority: 100
 
     # 6. manager-bot: Health & Diagnostics Gateway
@@ -91,6 +119,7 @@ http:
       middlewares:
         - cors-headers
         - compress
+        - api-ratelimit
       priority: 100
 
     # 7. frontend: Web Dashboard & Storefront (Catch-all)

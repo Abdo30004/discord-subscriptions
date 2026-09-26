@@ -3,6 +3,10 @@
 .env*.local
 !.env.example
 
+# Kubernetes Secrets
+k8s/03-secrets.yaml
+!k8s/03-secrets.example.yaml
+
 # Node.js & Dependencies
 node_modules/
 npm-debug.log*

@@ -6,8 +6,6 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
@@ -26,9 +24,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
-    ports:
-      - "5672:5672"     # AMQP protocol
-      - "15672:15672"   # Management Web UI
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -43,8 +38,6 @@ services:
     image: hashicorp/vault:1.16
     container_name: discord_subscriptions_vault
     restart: unless-stopped
-    ports:
-      - "8200:8200"
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN:-root}
       VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
@@ -75,6 +68,8 @@ services:
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
       JWT_SECRET: ${JWT_SECRET:-super-secret-development-jwt-key-replace-in-production}
       SUPER_ADMIN_DISCORD_IDS: ${SUPER_ADMIN_DISCORD_IDS:-}
+      VAULT_ADDR: http://vault:8200
+      VAULT_DEV_ROOT_TOKEN: ${VAULT_DEV_ROOT_TOKEN:-root}
       ENV: development
       LOG_LEVEL: debug
     healthcheck:
@@ -85,6 +80,8 @@ services:
       start_period: 5s
     depends_on:
       postgres:
+        condition: service_healthy
+      vault:
         condition: service_healthy
     networks:
       - platform-net
@@ -137,6 +134,7 @@ services:
       PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
       PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
       PAYPAL_MODE: ${PAYPAL_MODE:-sandbox}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-development-jwt-key-replace-in-production}
       ENV: development
       LOG_LEVEL: debug
     healthcheck:
@@ -172,6 +170,7 @@ services:
       RABBITMQ_PASS: ${RABBITMQ_PASS:-guest}
       VAULT_ADDR: http://vault:8200
       VAULT_DEV_ROOT_TOKEN: ${VAULT_DEV_ROOT_TOKEN:-root}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-development-jwt-key-replace-in-production}
       ENV: development
       LOG_LEVEL: debug
     healthcheck:
