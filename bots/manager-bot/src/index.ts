@@ -30,7 +30,15 @@ if (!config.discordToken) {
 // Lightweight HTTP Health Check Server
 const healthPort = Number(process.env.HEALTH_PORT || 8085);
 const healthServer = http.createServer((req, res) => {
-  if (req.url === '/health' || req.url === '/livez' || req.url === '/readyz') {
+  const url = req.url || '';
+  if (
+    url === '/health' ||
+    url === '/livez' ||
+    url === '/readyz' ||
+    url === '/api/v1/manager-bot/health' ||
+    url === '/api/v1/manager-bot/livez' ||
+    url === '/api/v1/manager-bot/readyz'
+  ) {
     const isReady = client.isReady();
     // In dev without token, standby is treated as 200 OK so container stays up
     const statusCode = isReady || !config.discordToken ? 200 : 503;
@@ -40,6 +48,8 @@ const healthServer = http.createServer((req, res) => {
         status: isReady ? 'healthy' : (!config.discordToken ? 'standby' : 'starting'),
         service: 'manager-bot',
         ready: isReady,
+        network: 'platform-net',
+        traefik_gateway: config.gatewayUrl,
         ping_ms: client.ws?.ping ?? -1,
         guilds_count: client.guilds?.cache.size ?? 0,
         uptime_seconds: Math.floor(process.uptime()),
