@@ -67,6 +67,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 📚 Documentation & Architecture Guides
 
+- upgrade platform go baseline to 1.26 across architecture manuals ([f8cbe77](https://github.com/Abdo30004/discord-subscriptions/commit/f8cbe77613e898d69b279c0fe9bece96b7529d53))
 - mark phase 4 completed and synchronize manager bot and ci documentation ([21fd123](https://github.com/Abdo30004/discord-subscriptions/commit/21fd12326b485bbc9dba9a8860a10aa9b11a45a4))
 - add production operations runbook and update phase 3 resolutions ([41a895a](https://github.com/Abdo30004/discord-subscriptions/commit/41a895a3394ab87fad8f9e5bab4a4f0dc9298a39))
 - update Phase 2 resilience and per-service database users specifications ([a2d2b85](https://github.com/Abdo30004/discord-subscriptions/commit/a2d2b85b77b3ac950f66c2f74dc5fcfdbf688782))
