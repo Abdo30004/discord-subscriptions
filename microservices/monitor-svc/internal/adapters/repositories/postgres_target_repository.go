@@ -21,6 +21,9 @@ func NewPostgresTargetRepository(db *sql.DB) *PostgresTargetRepository {
 
 // CreateTarget inserts or updates a monitoring target based on bot_id conflict.
 func (r *PostgresTargetRepository) CreateTarget(ctx context.Context, target *domain.MonitoringTarget) error {
+	if r == nil || r.db == nil {
+		return errors.New("database connection is not available")
+	}
 	query := `
 		INSERT INTO monitoring_targets (
 			id, bot_id, guild_id, instance_label, health_url, poll_interval_sec, 
@@ -47,6 +50,9 @@ func (r *PostgresTargetRepository) CreateTarget(ctx context.Context, target *dom
 
 // GetTargetByID finds a target by its ID.
 func (r *PostgresTargetRepository) GetTargetByID(ctx context.Context, id string) (*domain.MonitoringTarget, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("database connection is not available")
+	}
 	query := `
 		SELECT id, bot_id, guild_id, instance_label, health_url, poll_interval_sec, 
 		       is_active, current_status, consecutive_failures, last_checked_at, 
@@ -59,6 +65,9 @@ func (r *PostgresTargetRepository) GetTargetByID(ctx context.Context, id string)
 
 // GetTargetByGuildID finds the first target for a given Discord guild.
 func (r *PostgresTargetRepository) GetTargetByGuildID(ctx context.Context, guildID string) (*domain.MonitoringTarget, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("database connection is not available")
+	}
 	query := `
 		SELECT id, bot_id, guild_id, instance_label, health_url, poll_interval_sec, 
 		       is_active, current_status, consecutive_failures, last_checked_at, 
@@ -73,6 +82,9 @@ func (r *PostgresTargetRepository) GetTargetByGuildID(ctx context.Context, guild
 
 // ListTargetsByGuildID finds all targets for a given Discord guild.
 func (r *PostgresTargetRepository) ListTargetsByGuildID(ctx context.Context, guildID string) ([]domain.MonitoringTarget, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("database connection is not available")
+	}
 	query := `
 		SELECT id, bot_id, guild_id, instance_label, health_url, poll_interval_sec, 
 		       is_active, current_status, consecutive_failures, last_checked_at, 
@@ -100,6 +112,9 @@ func (r *PostgresTargetRepository) ListTargetsByGuildID(ctx context.Context, gui
 
 // GetActiveTargets returns all active targets configured for polling.
 func (r *PostgresTargetRepository) GetActiveTargets(ctx context.Context) ([]domain.MonitoringTarget, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("database connection is not available")
+	}
 	query := `
 		SELECT id, bot_id, guild_id, instance_label, health_url, poll_interval_sec, 
 		       is_active, current_status, consecutive_failures, last_checked_at, 
@@ -126,6 +141,9 @@ func (r *PostgresTargetRepository) GetActiveTargets(ctx context.Context) ([]doma
 
 // UpdateTarget updates status, failures, and check timestamps.
 func (r *PostgresTargetRepository) UpdateTarget(ctx context.Context, target *domain.MonitoringTarget) error {
+	if r == nil || r.db == nil {
+		return errors.New("database connection is not available")
+	}
 	query := `
 		UPDATE monitoring_targets
 		SET current_status = $1, consecutive_failures = $2, 
@@ -145,6 +163,9 @@ func (r *PostgresTargetRepository) UpdateTarget(ctx context.Context, target *dom
 
 // SaveCheckLog appends a probe result into the health_logs table.
 func (r *PostgresTargetRepository) SaveCheckLog(ctx context.Context, log *domain.CheckResult) error {
+	if r == nil || r.db == nil {
+		return errors.New("database connection is not available")
+	}
 	query := `
 		INSERT INTO health_logs (
 			target_id, status, status_code, latency_ms, 
@@ -164,6 +185,9 @@ func (r *PostgresTargetRepository) SaveCheckLog(ctx context.Context, log *domain
 
 // GetRecentLogs returns the latest probe history for a target.
 func (r *PostgresTargetRepository) GetRecentLogs(ctx context.Context, targetID string, limit int) ([]domain.CheckResult, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("database connection is not available")
+	}
 	query := `
 		SELECT target_id, status, status_code, latency_ms, 
 		       error_message, discord_ping_ms, memory_usage_mb, checked_at

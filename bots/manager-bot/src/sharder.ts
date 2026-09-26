@@ -79,11 +79,18 @@ export function startSharder() {
           ? Math.round(shardStats.reduce((sum, s) => sum + (s.ping > 0 ? s.ping : 0), 0) / shardStats.length)
           : -1;
 
-      const statusCode = allReady || !config.discordToken ? 200 : 503;
+      const isStandby =
+        !config.discordToken ||
+        spawnFailed ||
+        config.discordToken.startsWith('your_') ||
+        config.discordToken.startsWith('production_') ||
+        config.discordToken.includes('placeholder');
+
+      const statusCode = allReady || isStandby ? 200 : 503;
       res.writeHead(statusCode, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
-          status: allReady ? 'healthy' : 'starting',
+          status: allReady ? 'healthy' : (isStandby ? 'standby' : 'starting'),
           service: 'manager-bot',
           mode: 'sharded',
           ready: allReady,
@@ -106,7 +113,9 @@ export function startSharder() {
     console.log(`[Manager Bot Sharder] Master health aggregator listening on http://0.0.0.0:${healthPort}/health`);
   });
 
+  let spawnFailed = false;
   manager.spawn().catch((err) => {
-    console.error('[Manager Bot Sharder] Failed spawning shards:', err);
+    spawnFailed = true;
+    console.warn('[Manager Bot Sharder] Could not spawn shards (running in standby mode):', err.message || err);
   });
 }
