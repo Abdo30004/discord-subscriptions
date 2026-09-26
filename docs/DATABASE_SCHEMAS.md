@@ -227,3 +227,20 @@ All tables, indexes, and initial catalog seed data are maintained in:
 👉 [`scripts/init-databases.sql`](file:///C:/Users/kasep/Desktop/discord-subscriptions/scripts/init-databases.sql)
 
 When deploying locally via Docker Compose, this script is mounted directly to `/docker-entrypoint-initdb.d/01-init-databases.sql` and executes automatically upon the initial PostgreSQL boot.
+
+---
+
+## 4. Role-Based Access Control & Dedicated Service Users
+
+To prevent cross-database queries and enforce the **Principle of Least Privilege**, each microservice connects using its own isolated PostgreSQL role with ownership restricted exclusively to its domain database:
+
+| Service | Database | DB User | Default Password (Dev) | Scope & Privileges |
+| :--- | :--- | :--- | :--- | :--- |
+| `auth-svc` | `auth_db` | `auth_user` | `auth_pass` | `OWNER` of `auth_db`, `ALL` on public schema, tables, sequences |
+| `catalog-svc` | `catalog_db` | `catalog_user` | `catalog_pass` | `OWNER` of `catalog_db`, `ALL` on public schema, tables, sequences |
+| `billing-svc` | `billing_db` | `billing_user` | `billing_pass` | `OWNER` of `billing_db`, `ALL` on public schema, tables, sequences |
+| `deploy-svc` | `deploy_db` | `deploy_user` | `deploy_pass` | `OWNER` of `deploy_db`, `ALL` on public schema, tables, sequences |
+| `monitor-svc` | `monitor_db` | `monitor_user` | `monitor_pass` | `OWNER` of `monitor_db`, `ALL` on public schema, tables, sequences |
+
+The root `postgres` superuser is strictly restricted to container bootstrapping and administrative maintenance. Microservices are blocked at the database engine level from reading or writing data belonging to any other microservice.
+

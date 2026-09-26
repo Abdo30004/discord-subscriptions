@@ -50,14 +50,17 @@ flowchart LR
 - **Exchange Name**: `discord.events`
 - **Exchange Type**: `topic`
 - **Durable**: `true`
-- **Dead Letter Exchange (DLX)**: `discord.dlx`
-- **Dead Letter Queue**: `q.platform.dlx` (Stores unprocessable messages after 3 redelivery attempts).
+- **Dead Letter Exchange (DLX)**: `discord.events.dlx` (Type: `direct`, durable: `true`)
+- **Dead Letter Queue (DLQ)**: `discord.events.dlq` (Routing key: `dlq`, durable: `true`)
+- **Retry Policy**: Up to 3 retry attempts with exponential backoff via `x-retry-count` header before dead-lettering via un-requeued `Nack(false, false)`.
+- **Channel Isolation**: Independent AMQP channels for publishing (`pubChannel`) and subscribing (`subChannel`) to eliminate deadlock risks.
+- **Auto-Reconnection**: Resilient client loop with exponential backoff (1s-30s) and automatic re-subscription on broker reconnect.
 
 ---
 
-## 2. Canonical Event Envelope
+## 2. Canonical Event Envelope & Versioning
 
-Every event published to RabbitMQ conforms to the canonical envelope defined in `shared/events/event.go`:
+Every event published to RabbitMQ conforms to the canonical envelope defined in `shared/events/event.go`. Events carry an explicit `schema_version` in their JSON body and an `x-event-version` AMQP header for schema evolution:
 
 ```json
 {
@@ -65,9 +68,17 @@ Every event published to RabbitMQ conforms to the canonical envelope defined in 
   "event_type": "subscription.created",
   "source": "billing-svc",
   "timestamp": "2026-09-26T02:30:00Z",
+  "schema_version": "1.0",
   "payload": {}
 }
 ```
+
+### AMQP Message Headers:
+- `x-event-version`: Schema version string (`"1.0"`)
+- `x-retry-count`: Current retry attempt count (integer `0`-`3`)
+
+### Consumer Idempotency & Deduplication:
+All consumers integrate the `messaging.EventDeduplicator` memory-bounded cache (24-hour sliding TTL) keyed by `event_id`. Downstream services (`deploy-svc`, `monitor-svc`) additionally enforce domain state-machine checks (e.g. checking existing active deployment for a subscription before provisioning).
 
 ---
 

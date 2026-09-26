@@ -11,6 +11,8 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🚀 Features & Capabilities
 
+- **services**: integrate consumer deduplication and domain idempotency guards ([62f5cf7](https://github.com/Abdo30004/discord-subscriptions/commit/62f5cf713a62fbe51fbcc9eb48e0e6c01c34f31a))
+- **shared**: add rabbitmq auto-reconnect, dlx/dlq retries, event versioning and deduplicator ([af896ff](https://github.com/Abdo30004/discord-subscriptions/commit/af896ff438315ede39c9ac6e596c0b4a74fc98d7))
 - **frontend**: integrate httponly cookie sessions and pass auth tokens to admin APIs ([957f10d](https://github.com/Abdo30004/discord-subscriptions/commit/957f10d345ef71b358c3d5ae1a14908f0f59f889))
 - **deploy**: enforce admin authentication on token pool endpoints ([0942fa4](https://github.com/Abdo30004/discord-subscriptions/commit/0942fa479f1b07ba89dc39b8dd06297fe9389d07))
 - **billing**: protect admin grant, promo, and voucher endpoints with jwt validator ([9710efd](https://github.com/Abdo30004/discord-subscriptions/commit/9710efd58b1a5955a0b30f848fbb8f2efd8be953))
@@ -49,12 +51,15 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🏗️ Infrastructure & Persistence
 
+- **infra**: provision isolated per-service postgres users and least-privilege db ownership ([6372dcc](https://github.com/Abdo30004/discord-subscriptions/commit/6372dcc25ba3ed90081fe7b666b0853f0d018f9c))
 - **infra**: restrict traefik cors, secure dashboard, mount vault pvc, and template k8s secrets ([d7b365a](https://github.com/Abdo30004/discord-subscriptions/commit/d7b365acc7123e976e4a1024cee3617c47a6efc5))
 - **infra**: integrate manager-bot into Traefik network mesh in Docker Compose ([aa79b2f](https://github.com/Abdo30004/discord-subscriptions/commit/aa79b2f112880ece49622bfdddcbf81f28caa332))
 - **infra**: initialize repository scaffolding, multi-workspace go tooling, and database seeds ([a700cce](https://github.com/Abdo30004/discord-subscriptions/commit/a700cce8b14faf23cb01fdddfc3bd93766fcd24c))
 
 ### 📚 Documentation & Architecture Guides
 
+- update Phase 2 resilience and per-service database users specifications ([1302f64](https://github.com/Abdo30004/discord-subscriptions/commit/1302f64ed63d27402f8e14b5d9d4d9765575c47b))
+- update database schemas, api references, and security audit report ([ae4a11a](https://github.com/Abdo30004/discord-subscriptions/commit/ae4a11aede0525e2035d2cee5e3893d37cda178a))
 - document super admin hierarchy, admin promotion endpoints, and staff panel ([8ddbf57](https://github.com/Abdo30004/discord-subscriptions/commit/8ddbf575d75fca4dbe46c364355bce32017bd280))
 - update .env.example with comprehensive platform config and add env sync rule ([877f4bc](https://github.com/Abdo30004/discord-subscriptions/commit/877f4bc25e01683c1e75aa7cd727f2f056a6b8d1))
 - **frontend**: update route guards and navigation visibility specification ([82f51de](https://github.com/Abdo30004/discord-subscriptions/commit/82f51de27a97738c0fe94614825305148bde231f))

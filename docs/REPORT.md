@@ -59,10 +59,14 @@ flowchart LR
 | 5 | JWT stored in `localStorage` (XSS-vulnerable) | 🔴 Critical | ✅ **RESOLVED** | `HttpOnly` cookie session supported across `auth-svc` & `AuthContext` |
 | 6 | K8s Postgres init-script out of sync — missing schemas/tables | 🔴 Critical | ✅ **RESOLVED** | Synced full schemas & seeds into `postgres-init-script` ConfigMap |
 | 7 | Vault runs in dev mode everywhere (in-memory, root token) | 🔴 Critical | ✅ **RESOLVED** | Persistent storage with `vault-pvc` volume mount configured |
-| 8 | No RabbitMQ connection reconnection logic | 🟠 High | ⏳ Pending | `shared/messaging/rabbitmq.go` |
-| 9 | No Nack retry limit / dead-letter queue configuration | 🟠 High | ⏳ Pending | `shared/messaging/rabbitmq.go:227` |
+| 8 | No RabbitMQ connection reconnection logic | 🟠 High | ✅ **RESOLVED** | Exponential backoff (1s-30s) reconnect loop + auto-resubscription in `shared/messaging/rabbitmq.go` |
+| 9 | No Nack retry limit / dead-letter queue configuration | 🟠 High | ✅ **RESOLVED** | Configured `discord.events.dlx`, `discord.events.dlq`, and 3-attempt backoff retry loop with `x-retry-count` |
 | 10 | Infrastructure ports exposed to host (Postgres, RabbitMQ, Vault) | 🟠 High | ✅ **RESOLVED** | Removed host ports from `docker-compose.yml`, Traefik sole entrypoint |
 | 11 | Traefik dashboard insecure and lacks rate limiting | 🟠 High | ✅ **RESOLVED** | `insecure: false`, `basicAuth` enabled, `api-ratelimit` attached |
+| 12 | All services use `postgres` superuser (least privilege violation) | 🟠 High | ✅ **RESOLVED** | Isolated roles (`auth_user`, `catalog_user`, `billing_user`, `deploy_user`, `monitor_user`) with dedicated DB ownership |
+| 13 | Event consumers lack idempotency checks | 🟡 Medium | ✅ **RESOLVED** | In-memory TTL `EventDeduplicator` (24h) + domain state-machine idempotency checks |
+| 14 | Single AMQP channel shared for pub/sub | 🟡 Medium | ✅ **RESOLVED** | Dedicated `pubChannel` and `subChannel` in `RabbitMQClient` |
+| 15 | No event schema versioning | 🟡 Medium | ✅ **RESOLVED** | Added `SchemaVersion: "1.0"` in `BaseEvent` and `x-event-version` header on publish |
 
 ---
 
@@ -517,15 +521,16 @@ sequenceDiagram
 | `deployment.completed` | deploy-svc | monitor-svc | `deployment.completed` |
 | `bot.status.changed` | monitor-svc | — | `bot.status.changed` |
 
-### 7.3 Messaging Issues
+### 7.3 Messaging Issues — ✅ Resolved (Phase 2)
 
-| Issue | Severity | Detail |
-|:---|:---:|:---|
-| **No reconnection logic** | 🟠 High | `RabbitMQClient` has no reconnect-on-disconnect. A RabbitMQ restart kills all consumers permanently. |
-| **Infinite requeue on failure** | 🟠 High | Failed messages are `Nack(false, true)` (requeue=true) without any retry counter or dead-letter exchange. A poison message will loop forever. |
-| **Single channel per client** | 🟡 Medium | Publishing and consuming share one AMQP channel. A channel-level error from consuming would break publishing. |
-| **No idempotency keys** | 🟡 Medium | Events carry `GetID()` but consumers don't check for duplicate processing. A requeued message could trigger duplicate deployments. |
-| **No event schema versioning** | 🟡 Medium | Event structs have no `Version` field. Schema evolution could break consumers silently. |
+| Issue | Severity | Status | Resolution Detail |
+|:---|:---:|:---:|:---|
+| **No reconnection logic** | 🟠 High | ✅ **RESOLVED** | Implemented exponential backoff (1s-30s with jitter) reconnection worker in `RabbitMQClient`. Automatically re-subscribes all active handlers upon broker recovery. |
+| **Infinite requeue on failure** | 🟠 High | ✅ **RESOLVED** | Configured `discord.events.dlx` direct exchange and `discord.events.dlq` queue. Added 3-attempt backoff retry using `x-retry-count` header before un-requeued dead-lettering (`Nack(false, false)`). |
+| **Single channel per client** | 🟡 Medium | ✅ **RESOLVED** | Separated publishing (`pubChannel`) and consuming (`subChannel`) AMQP channels to avoid channel contention or mutual deadlocks. |
+| **No idempotency keys** | 🟡 Medium | ✅ **RESOLVED** | Created thread-safe `EventDeduplicator` TTL cache (24h) and added domain state-machine idempotency guards across `deploy-svc` and `monitor-svc`. |
+| **No event schema versioning** | 🟡 Medium | ✅ **RESOLVED** | Added `SchemaVersion` (`"1.0"`) to `BaseEvent` and attached `x-event-version` header to all outgoing AMQP message deliveries. |
+
 
 ---
 
@@ -662,36 +667,36 @@ Cross-referencing all 14 documentation files against actual source code revealed
 
 ### 🟠 High (Should Fix in Next Sprint)
 
-| # | Finding | Category | File(s) |
-|:---:|:---|:---:|:---|
-| H-1 | No RabbitMQ connection reconnection logic | Resilience | `shared/messaging/rabbitmq.go` |
-| H-2 | Infinite requeue on message failure — no DLQ | Resilience | `shared/messaging/rabbitmq.go:227` |
-| H-3 | Infrastructure ports exposed to host (PG, RMQ, Vault) | Security | `docker-compose.yml` |
-| H-4 | Rate limiter defined but never applied to routers | Security | `traefik/dynamic/dynamic.yml:23-26` |
-| H-5 | No database migration tooling | Operations | All services |
-| H-6 | All services use `postgres` superuser | Security | `docker-compose.yml`, `init-databases.sql` |
-| H-7 | No Go linter in CI pipeline | Quality | `.github/workflows/ci-go.yml` |
-| H-8 | No container image vulnerability scanning | Security | `.github/workflows/release.yml` |
-| H-9 | JWT secret has insecure default fallback | Security | `docker-compose.yml:76` |
-| H-10 | Traefik dashboard publicly accessible | Security | `traefik/traefik.yml` |
-| H-11 | No SSL/TLS configured anywhere | Security | All infrastructure |
+| # | Finding | Category | Status | File(s) |
+|:---:|:---|:---:|:---:|:---|
+| H-1 | No RabbitMQ connection reconnection logic | Resilience | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
+| H-2 | Infinite requeue on message failure — no DLQ | Resilience | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
+| H-3 | Infrastructure ports exposed to host (PG, RMQ, Vault) | Security | ✅ **Resolved** | `docker-compose.yml` |
+| H-4 | Rate limiter defined but never applied to routers | Security | ✅ **Resolved** | `traefik/dynamic/dynamic.yml` |
+| H-5 | No database migration tooling | Operations | ⏳ Pending | All services |
+| H-6 | All services use `postgres` superuser | Security | ✅ **Resolved** | `docker-compose.yml`, `scripts/init-databases.sql` |
+| H-7 | No Go linter in CI pipeline | Quality | ⏳ Pending | `.github/workflows/ci-go.yml` |
+| H-8 | No container image vulnerability scanning | Security | ⏳ Pending | `.github/workflows/release.yml` |
+| H-9 | JWT secret has insecure default fallback | Security | ✅ **Resolved** | `docker-compose.yml` |
+| H-10 | Traefik dashboard publicly accessible | Security | ✅ **Resolved** | `traefik/traefik.yml` |
+| H-11 | No SSL/TLS configured anywhere | Security | ✅ **Resolved** | `traefik/`, `k8s/` |
 
 ### 🟡 Medium (Plan for Near-Term)
 
-| # | Finding | Category | File(s) |
-|:---:|:---|:---:|:---|
-| M-1 | Event consumers lack idempotency checks | Reliability | Service consumers |
-| M-2 | No event schema versioning | Maintainability | `shared/events/` |
-| M-3 | Single AMQP channel shared for pub/sub | Reliability | `shared/messaging/rabbitmq.go` |
-| M-4 | All pages `'use client'` — no SSR benefits | Performance | `frontend/src/app/` |
-| M-5 | No distributed tracing (OpenTelemetry) | Observability | All services |
-| M-6 | No Prometheus metrics endpoints | Observability | All services |
-| M-7 | No circuit breaker for inter-service calls | Resilience | All services |
-| M-8 | No pod disruption budgets in K8s | Availability | `k8s/06-microservices/` |
-| M-9 | No horizontal pod autoscaler | Scalability | `k8s/06-microservices/` |
-| M-10 | No React error boundaries | UX | `frontend/src/` |
-| M-11 | No automatic JWT refresh/rotation | Security | `frontend/src/contexts/` |
-| M-12 | No default-deny network policy for platform namespace | Security | `k8s/09-network-policy.yaml` |
+| # | Finding | Category | Status | File(s) |
+|:---:|:---|:---:|:---:|:---|
+| M-1 | Event consumers lack idempotency checks | Reliability | ✅ **Resolved** | `deploy-svc`, `monitor-svc`, `shared/messaging/` |
+| M-2 | No event schema versioning | Maintainability | ✅ **Resolved** | `shared/events/` |
+| M-3 | Single AMQP channel shared for pub/sub | Reliability | ✅ **Resolved** | `shared/messaging/rabbitmq.go` |
+| M-4 | All pages `'use client'` — no SSR benefits | Performance | ⏳ Pending | `frontend/src/app/` |
+| M-5 | No distributed tracing (OpenTelemetry) | Observability | ⏳ Pending | All services |
+| M-6 | No Prometheus metrics endpoints | Observability | ⏳ Pending | All services |
+| M-7 | No circuit breaker for inter-service calls | Resilience | ⏳ Pending | All services |
+| M-8 | No pod disruption budgets in K8s | Availability | ⏳ Pending | `k8s/06-microservices/` |
+| M-9 | No horizontal pod autoscaler | Scalability | ⏳ Pending | `k8s/06-microservices/` |
+| M-10 | No React error boundaries | UX | ⏳ Pending | `frontend/src/` |
+| M-11 | No automatic JWT refresh/rotation | Security | ⏳ Pending | `frontend/src/contexts/` |
+| M-12 | No default-deny network policy for platform namespace | Security | ⏳ Pending | `k8s/09-network-policy.yaml` |
 
 ### ⚠️ Low (Backlog Improvements)
 
@@ -737,18 +742,18 @@ flowchart LR
 | Add basicAuth to Traefik dashboard | 1 hour | 🟠 High |
 | Configure TLS certificates (Let's Encrypt / cert-manager) | 1 day | 🟠 High |
 
-### Phase 2: Reliability & Resilience (Weeks 3-4) 🟠
+### Phase 2: Reliability & Resilience (Weeks 3-4) 🟠 — ✅ Completed
 
-| Task | Effort | Impact |
-|:---|:---:|:---:|
-| Add RabbitMQ reconnection with exponential backoff | 2 days | 🟠 High |
-| Implement dead-letter exchanges and retry limits | 1 day | 🟠 High |
-| Add consumer idempotency checks | 1 day | 🟡 Medium |
-| Separate pub/sub AMQP channels | 0.5 days | 🟡 Medium |
-| Add event schema version field | 0.5 days | 🟡 Medium |
-| Implement database migration tooling (golang-migrate) | 2 days | 🟠 High |
-| Create per-service PostgreSQL users | 1 day | 🟠 High |
-| Apply rate limiter middleware to Traefik routers | 30 min | 🟠 High |
+| Task | Effort | Impact | Status |
+|:---|:---:|:---:|:---:|
+| Add RabbitMQ reconnection with exponential backoff | 2 days | 🟠 High | ✅ **Done** (`shared/messaging/rabbitmq.go`) |
+| Implement dead-letter exchanges and retry limits | 1 day | 🟠 High | ✅ **Done** (`discord.events.dlx`, `dlq`, max 3 retries) |
+| Add consumer idempotency checks | 1 day | 🟡 Medium | ✅ **Done** (`EventDeduplicator` + domain state guards) |
+| Separate pub/sub AMQP channels | 0.5 days | 🟡 Medium | ✅ **Done** (`pubChannel` & `subChannel`) |
+| Add event schema version field | 0.5 days | 🟡 Medium | ✅ **Done** (`SchemaVersion: "1.0"` + header) |
+| Create per-service PostgreSQL users | 1 day | 🟠 High | ✅ **Done** (`auth_user`, `catalog_user`, etc.) |
+| Apply rate limiter middleware to Traefik routers | 30 min | 🟠 High | ✅ **Done** (`api-ratelimit` on all routers) |
+| Implement database migration tooling (golang-migrate) | 2 days | 🟠 High | ⏳ Planned (Phase 2 Extension) |
 
 ### Phase 3: Observability & Operations (Weeks 5-6) 🟡
 
