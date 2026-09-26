@@ -43,6 +43,10 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 - document ci/cd pipelines, automated changelog system, and agent rules ([52d54f3](https://github.com/Abdo30004/discord-subscriptions/commit/52d54f386e6bbc2b264fc1990641c3012cfd119a))
 - provide comprehensive architectural specifications, runbooks, and agent rules ([5a19147](https://github.com/Abdo30004/discord-subscriptions/commit/5a19147acfd9ca24131b693f18ce341431c423a9))
 
+### 🤖 CI/CD Automation
+
+- configure multi-workspace go cache dependency pattern ([42900ba](https://github.com/Abdo30004/discord-subscriptions/commit/42900bab3969d4349e1312d6342fc25f35d3ca8e))
+
 ---
 
 *Generated automatically with `scripts/generate-changelog.mjs` based on Conventional Commits.*
