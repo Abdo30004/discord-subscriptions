@@ -44,6 +44,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🐛 Bug Fixes & Resilience
 
+- **deps**: upgrade pgx driver to v5.11.0 to resolve GO-2026-5004 ([4989d41](https://github.com/Abdo30004/discord-subscriptions/commit/4989d412e92088aed40aea8d6b5e770c4ff19ee8))
 - **go**: resolve static analysis linter warnings and upgrade e2e to go 1.26 ([046a1b1](https://github.com/Abdo30004/discord-subscriptions/commit/046a1b1aaa108e474181e59b440379f33ea1efa4))
 - **docs**: resolve syntax errors across all markdown mermaid diagrams ([312204b](https://github.com/Abdo30004/discord-subscriptions/commit/312204bacc4b671b19bc503fa4b5476dc678c681))
 
@@ -81,6 +82,7 @@ and this project strictly adheres to [Conventional Commits](https://www.conventi
 
 ### 🤖 CI/CD Automation
 
+- **go**: configure per-module govulncheck in multi-workspace pipeline ([cf09d84](https://github.com/Abdo30004/discord-subscriptions/commit/cf09d84d9f9a94dac702b9d28a521b6ad22b6f87))
 - **go**: upgrade go runner to 1.26 and configure multi-module golangci-lint ([a0798c8](https://github.com/Abdo30004/discord-subscriptions/commit/a0798c8bf163b2d0b1d38a774a775714bbcda116))
 - modularize workflows with selective path triggers for targeted execution ([942c51c](https://github.com/Abdo30004/discord-subscriptions/commit/942c51ca956d38cee65ffced27ef4c59988d7f25))
 - upgrade diagram validation job to node 24 for mermaid 12 compatibility ([80d9cc7](https://github.com/Abdo30004/discord-subscriptions/commit/80d9cc77820163caafa48ad9a5d5a82ea38b5dd4))
