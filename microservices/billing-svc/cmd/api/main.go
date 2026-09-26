@@ -21,6 +21,7 @@ import (
 	"github.com/discord-subscriptions/shared/health"
 	"github.com/discord-subscriptions/shared/logger"
 	"github.com/discord-subscriptions/shared/messaging"
+	"github.com/discord-subscriptions/shared/telemetry"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -79,10 +80,13 @@ func main() {
 	mux := http.NewServeMux()
 	handler := handlers.NewHTTPHandler(billingService, healthChecker, log, authValidator)
 	handler.RegisterRoutes(mux)
+	mux.Handle("GET /metrics", telemetry.Handler())
+
+	telemetryMiddleware := telemetry.HTTPMiddleware("billing-svc")
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      mux,
+		Handler:      telemetryMiddleware(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,

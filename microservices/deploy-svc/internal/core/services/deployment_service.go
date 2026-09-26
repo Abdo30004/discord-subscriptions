@@ -16,6 +16,7 @@ import (
 	"github.com/discord-subscriptions/deploy-svc/internal/core/ports"
 	"github.com/discord-subscriptions/shared/events"
 	"github.com/discord-subscriptions/shared/messaging"
+	"github.com/discord-subscriptions/shared/resilience"
 	"github.com/discord-subscriptions/shared/vault"
 	"github.com/google/uuid"
 )
@@ -42,13 +43,23 @@ func NewDeploymentService(
 	if logger == nil {
 		logger = slog.Default()
 	}
+
+	cb := resilience.NewCircuitBreaker(resilience.Config{
+		Name:        "discord-api",
+		MaxFailures: 5,
+		Timeout:     30 * time.Second,
+	})
+
 	return &DeploymentServiceImpl{
 		repo:       repo,
 		poolRepo:   poolRepo,
 		k8s:        k8s,
 		vault:      vaultClient,
 		publisher:  publisher,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		httpClient: &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: resilience.NewRoundTripper(cb, nil),
+		},
 		logger:     logger,
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/discord-subscriptions/shared/resilience"
 	"github.com/google/uuid"
 )
 
@@ -32,14 +33,23 @@ func NewClient(clientID, clientSecret, webhookID, mode string, logger *slog.Logg
 		logger.Warn("PayPal credentials not set or placeholder; running PayPal client in simulation mode")
 	}
 
+	cb := resilience.NewCircuitBreaker(resilience.Config{
+		Name:        "paypal-api",
+		MaxFailures: 5,
+		Timeout:     30 * time.Second,
+	})
+
 	return &Client{
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		webhookID:    webhookID,
 		mode:         mode,
-		httpClient:   &http.Client{Timeout: 10 * time.Second},
-		logger:       logger,
-		isMockMode:   isMock,
+		httpClient: &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: resilience.NewRoundTripper(cb, nil),
+		},
+		logger:     logger,
+		isMockMode: isMock,
 	}
 }
 
