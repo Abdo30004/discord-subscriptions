@@ -60,3 +60,6 @@ All commit messages MUST adhere to the following format:
    - Never commit `.env`, `node_modules/`, `.next/`, `dist/`, binary `.exe` files, or temporary test artifacts. Always verify `git status` against `.gitignore`.
 4. **Synchronized Documentation**:
    - Accompanying documentation changes in `./docs/` should either be included in the feature commit or in a distinct `docs:` commit immediately following it.
+5. **Synchronized Changelog**:
+   - Every release or major batch of commits must be reflected in `CHANGELOG.md` via Conventional Commits.
+   - Run `npm run changelog` to update `CHANGELOG.md`, and verify with `npm run changelog:check`.

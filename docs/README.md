@@ -21,6 +21,7 @@ This documentation suite covers every layer of the platform: microservices, mult
 | [**Kubernetes Production Guide**](./KUBERNETES.md) | Cluster manifests, namespaces, RBAC, and network isolation | `platform` & `discord-bots` namespaces, `deploy-svc-sa`, NetworkPolicy |
 | [**Traefik Reverse Proxy Guide**](./REVERSE_PROXY_TRAEFIK.md) | Unified edge gateway, path routing, CORS, and rate limiting | Traefik v3, `:80` unified entrypoint, dashboard `:8090`, IngressRoute |
 | [**Health Checks & Observability**](./HEALTH_CHECKS.md) | Standardized deep/shallow probes, metrics & readiness | `/health`, `/livez`, `/readyz`, Manager Bot `:8085`, Frontend, K8s probes |
+| [**CI/CD & Changelog System**](./CI_CD_AND_CHANGELOG.md) | GitHub Actions CI/CD workflows and automated changelogs | `ci.yml`, `release.yml`, GHCR containers, `generate-changelog.mjs`, `cliff.toml` |
 | [**Development & Runbook Guide**](./DEVELOPMENT_GUIDE.md) | Local environment, tests, builds, and doc sync | Docker Compose, `go.work`, TypeScript compilation, **Doc Sync Policy** |
 
 ---

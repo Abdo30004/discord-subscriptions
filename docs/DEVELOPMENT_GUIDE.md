@@ -112,6 +112,15 @@ npm run build
 cd ..
 ```
 
+### 3.5 Changelog Generation & Synchronization
+Verify or regenerate `CHANGELOG.md` following Conventional Commits:
+```powershell
+# Update CHANGELOG.md from git commits
+npm run changelog
+# Or verify CHANGELOG.md is up-to-date
+npm run changelog:check
+```
+
 ---
 
 ## 4. Documentation Synchronization Protocol

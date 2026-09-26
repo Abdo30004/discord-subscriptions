@@ -192,5 +192,11 @@ All agents committing code to this repository MUST strictly follow the Conventio
   3. Bots and frontend clients
   4. Infrastructure & orchestrators (Traefik, K8s)
   5. Documentation & agent configurations
-- Run full pre-commit verification (`go test`, builds, `docker compose config`, `kubectl kustomize`) before committing.
+- Run full pre-commit verification (`go test`, builds, `docker compose config`, `kubectl kustomize`, `npm run changelog:check`) before committing.
+
+### Changelog Synchronization Invariant
+- All notable features and fixes MUST be reflected in `CHANGELOG.md` via Conventional Commits.
+- Run `npm run changelog` (or `make changelog`) to regenerate `CHANGELOG.md`.
+- CI strictly checks `CHANGELOG.md` validity via `npm run changelog:check`.
+
 
