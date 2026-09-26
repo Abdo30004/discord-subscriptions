@@ -36,6 +36,11 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Audit Dependencies
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
       - name: Build Next.js Application
         working-directory: frontend
         run: npm run build
+

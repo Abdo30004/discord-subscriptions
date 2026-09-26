@@ -7,6 +7,7 @@
     "changelog": "node scripts/generate-changelog.mjs",
     "changelog:check": "node scripts/generate-changelog.mjs --check",
     "test:go": "go test -v ./shared/... ./microservices/auth-svc/... ./microservices/catalog-svc/... ./microservices/billing-svc/... ./microservices/deploy-svc/... ./microservices/monitor-svc/...",
+    "test:e2e": "go test -v ./tests/e2e/...",
     "build:bot": "npm --prefix bots/manager-bot run build",
     "build:frontend": "npm --prefix frontend run build",
     "validate:docker": "docker compose config --quiet",

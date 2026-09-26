@@ -53,3 +53,16 @@ jobs:
           go build -o /dev/null ./microservices/billing-svc/cmd/api
           go build -o /dev/null ./microservices/deploy-svc/cmd/api
           go build -o /dev/null ./microservices/monitor-svc/cmd/api
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61
+          args: --timeout=5m
+        continue-on-error: false
+
+      - name: Run govulncheck Vulnerability Scanner
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./shared/... ./microservices/...
+

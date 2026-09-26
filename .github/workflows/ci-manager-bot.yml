@@ -36,6 +36,11 @@ jobs:
         working-directory: bots/manager-bot
         run: npm ci
 
+      - name: Audit Dependencies
+        working-directory: bots/manager-bot
+        run: npm audit --audit-level=high
+
       - name: Build TypeScript Manager Bot
         working-directory: bots/manager-bot
         run: npm run build
+

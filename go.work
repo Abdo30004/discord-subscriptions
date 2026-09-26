@@ -7,4 +7,5 @@ use (
 	./microservices/monitor-svc
 	./microservices/billing-svc
 	./microservices/auth-svc
+	./tests/e2e
 )
