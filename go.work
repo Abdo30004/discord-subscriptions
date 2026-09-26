@@ -1,11 +1,11 @@
 go 1.26.5
 
 use (
-	./shared
+	./microservices/auth-svc
+	./microservices/billing-svc
 	./microservices/catalog-svc
 	./microservices/deploy-svc
 	./microservices/monitor-svc
-	./microservices/billing-svc
-	./microservices/auth-svc
+	./shared
 	./tests/e2e
 )
