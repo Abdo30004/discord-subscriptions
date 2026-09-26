@@ -23,18 +23,50 @@ cp .env.example .env
 ```
 Ensure `SUPER_ADMIN_DISCORD_IDS` is populated with your Discord Snowflake ID (comma-separated if multiple administrators) to grant permanent Super Admin permissions upon signing in with Discord.
 
-### 2.2 Starting Local Infrastructure
-Start PostgreSQL, RabbitMQ, and HashiCorp Vault using Docker Compose:
-```bash
-# Start all infrastructure dependencies in detached mode
-docker compose up -d postgres rabbitmq vault
+### 2.2 Development vs Production Docker Compose Environments
 
-# Verify containers are healthy
-docker compose ps
+The platform provides isolated Compose files and environment configurations for development and production modes:
+
+| Mode | Compose File | Environment File | Key Characteristics | NPM Command | Make Target |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Development** | `docker-compose.dev.yml` | `.env.dev` | `ENV=development`, `LOG_LEVEL=debug`, `PAYPAL_MODE=sandbox`, `ENABLE_SHARDING=false`, public dashboard on port `8090` | `npm run compose:dev` | `make up-dev` |
+| **Production** | `docker-compose.prod.yml` | `.env.prod` | `ENV=production`, `LOG_LEVEL=info`, JSON structured logs, `PAYPAL_MODE=live`, `ENABLE_SHARDING=true` (Discord sharding cluster), dynamic DB passwords, loopback-only dashboard `127.0.0.1:8090`, CPU & memory resource limits, `restart: always` | `npm run compose:prod` | `make up-prod` |
+
+#### Running in Development Mode
+```powershell
+# Start dev stack
+npm run compose:dev
+# or: docker compose -f docker-compose.dev.yml --env-file .env.dev up -d
+
+# Check health using PowerShell
+docker compose -f docker-compose.dev.yml --env-file .env.dev ps --format json | ConvertFrom-Json | Select-Object Service, State, Health | Format-Table -AutoSize
+
+# Stop dev stack
+npm run compose:dev:down
 ```
 
-### 2.3 Initializing Databases
-The PostgreSQL container automatically runs [`scripts/init-databases.sql`](file:///C:/Users/kasep/Desktop/discord-subscriptions/scripts/init-databases.sql) on its first initialization. To manually reset or re-seed the databases:
+#### Running in Production Mode
+```powershell
+# Start production stack
+npm run compose:prod
+# or: docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+# Check health using PowerShell
+docker compose -f docker-compose.prod.yml --env-file .env.prod ps --format json | ConvertFrom-Json | Select-Object Service, State, Health | Format-Table -AutoSize
+
+# Verify endpoints with PowerShell
+Invoke-RestMethod -Uri "http://localhost/api/health" -TimeoutSec 5
+Invoke-RestMethod -Uri "http://localhost/api/v1/catalog/bots" -TimeoutSec 5
+
+# Stop production stack
+npm run compose:prod:down
+```
+
+### 2.3 Initializing Databases & Passwords
+- **Development**: The PostgreSQL container initializes schemas from [`scripts/init-databases.sql`](file:///C:/Users/kasep/Desktop/discord-subscriptions/scripts/init-databases.sql).
+- **Production**: In addition to `init-databases.sql`, [`scripts/set-passwords.sh`](file:///C:/Users/kasep/Desktop/discord-subscriptions/scripts/set-passwords.sh) is mounted as an entrypoint script to dynamically apply distinct, secure passwords from `.env.prod` to `auth_user`, `catalog_user`, `billing_user`, `deploy_user`, and `monitor_user`.
+
+To manually reset or re-seed the databases:
 ```bash
 docker compose down -v
 docker compose up -d postgres

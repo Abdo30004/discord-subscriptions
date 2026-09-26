@@ -1,4 +1,4 @@
-.PHONY: up down restart test lint build build-bot build-frontend build-all validate-docker validate-k8s changelog changelog-check check-all
+.PHONY: up down restart up-dev down-dev up-prod down-prod test lint build build-bot build-frontend build-all validate-docker validate-k8s changelog changelog-check check-all
 
 up:
 	docker compose up -d
@@ -8,6 +8,18 @@ down:
 
 restart:
 	docker compose restart
+
+up-dev:
+	docker compose -f docker-compose.dev.yml --env-file .env.dev up -d
+
+down-dev:
+	docker compose -f docker-compose.dev.yml --env-file .env.dev down
+
+up-prod:
+	docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+down-prod:
+	docker compose -f docker-compose.prod.yml --env-file .env.prod down
 
 test:
 	go test -v ./shared/... ./microservices/auth-svc/... ./microservices/catalog-svc/... ./microservices/billing-svc/... ./microservices/deploy-svc/... ./microservices/monitor-svc/...
@@ -26,6 +38,8 @@ build-frontend:
 
 validate-docker:
 	docker compose config --quiet
+	docker compose -f docker-compose.dev.yml --env-file .env.dev config --quiet
+	docker compose -f docker-compose.prod.yml --env-file .env.prod config --quiet
 
 validate-k8s:
 	kubectl kustomize k8s/

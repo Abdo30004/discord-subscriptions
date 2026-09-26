@@ -1,0 +1,435 @@
+name: discord-subscriptions-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: discord_subscriptions_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in production}
+      AUTH_DB_PASS: ${AUTH_DB_PASS:-auth_pass}
+      CATALOG_DB_PASS: ${CATALOG_DB_PASS:-catalog_pass}
+      BILLING_DB_PASS: ${BILLING_DB_PASS:-billing_pass}
+      DEPLOY_DB_PASS: ${DEPLOY_DB_PASS:-deploy_pass}
+      MONITOR_DB_PASS: ${MONITOR_DB_PASS:-monitor_pass}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
+      - ./scripts/set-passwords.sh:/docker-entrypoint-initdb.d/02-set-passwords.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+    networks:
+      - platform-net-prod
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: discord_subscriptions_rabbitmq_prod
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rabbit_prod_admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS is required in production}
+    volumes:
+      - rabbitmq_data_prod:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+    networks:
+      - platform-net-prod
+
+  vault:
+    image: hashicorp/vault:1.16
+    container_name: discord_subscriptions_vault_prod
+    restart: always
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN:-prod_vault_token_replace_with_unseal_token}
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault_data_prod:/vault/data
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - platform-net-prod
+
+  auth-svc:
+    build:
+      context: .
+      dockerfile: microservices/auth-svc/Dockerfile
+    container_name: discord_subscriptions_auth_svc_prod
+    restart: always
+    environment:
+      ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASS:?AUTH_DB_PASS is required in production}
+      AUTH_DB_NAME: auth_db
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-prefer}
+      AUTH_SVC_PORT: 8080
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be defined in production}
+      SUPER_ADMIN_DISCORD_IDS: ${SUPER_ADMIN_DISCORD_IDS:-}
+      VAULT_ADDR: http://vault:8200
+      VAULT_DEV_ROOT_TOKEN: ${VAULT_DEV_ROOT_TOKEN:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - platform-net-prod
+
+  catalog-svc:
+    build:
+      context: .
+      dockerfile: microservices/catalog-svc/Dockerfile
+    container_name: discord_subscriptions_catalog_svc_prod
+    restart: always
+    environment:
+      ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${CATALOG_DB_USER:-catalog_user}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASS:?CATALOG_DB_PASS is required in production}
+      CATALOG_DB_NAME: catalog_db
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-prefer}
+      CATALOG_SVC_PORT: 8081
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - platform-net-prod
+
+  billing-svc:
+    build:
+      context: .
+      dockerfile: microservices/billing-svc/Dockerfile
+    container_name: discord_subscriptions_billing_svc_prod
+    restart: always
+    environment:
+      ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${BILLING_DB_USER:-billing_user}
+      POSTGRES_PASSWORD: ${BILLING_DB_PASS:?BILLING_DB_PASS is required in production}
+      BILLING_DB_NAME: billing_db
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-prefer}
+      BILLING_SVC_PORT: 8082
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-rabbit_prod_admin}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS is required in production}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+      PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
+      PAYPAL_MODE: ${PAYPAL_MODE:-live}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be defined in production}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - platform-net-prod
+
+  deploy-svc:
+    build:
+      context: .
+      dockerfile: microservices/deploy-svc/Dockerfile
+    container_name: discord_subscriptions_deploy_svc_prod
+    restart: always
+    environment:
+      ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${DEPLOY_DB_USER:-deploy_user}
+      POSTGRES_PASSWORD: ${DEPLOY_DB_PASS:?DEPLOY_DB_PASS is required in production}
+      DEPLOY_DB_NAME: deploy_db
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-prefer}
+      DEPLOY_SVC_PORT: 8083
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-rabbit_prod_admin}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS is required in production}
+      VAULT_ADDR: http://vault:8200
+      VAULT_DEV_ROOT_TOKEN: ${VAULT_DEV_ROOT_TOKEN:-}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be defined in production}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8083/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - platform-net-prod
+
+  monitor-svc:
+    build:
+      context: .
+      dockerfile: microservices/monitor-svc/Dockerfile
+    container_name: discord_subscriptions_monitor_svc_prod
+    restart: always
+    environment:
+      ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${MONITOR_DB_USER:-monitor_user}
+      POSTGRES_PASSWORD: ${MONITOR_DB_PASS:?MONITOR_DB_PASS is required in production}
+      MONITOR_DB_NAME: monitor_db
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-prefer}
+      MONITOR_SVC_PORT: 8084
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-rabbit_prod_admin}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS is required in production}
+      MONITOR_POLL_INTERVAL: ${MONITOR_POLL_INTERVAL:-15s}
+      MONITOR_WORKERS: ${MONITOR_WORKERS:-10}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8084/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - platform-net-prod
+
+  manager-bot:
+    build:
+      context: .
+      dockerfile: bots/manager-bot/Dockerfile
+    container_name: discord_subscriptions_manager_bot_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      ENABLE_SHARDING: ${ENABLE_SHARDING:-true}
+      MANAGER_BOT_TOKEN: ${MANAGER_BOT_TOKEN:-}
+      MANAGER_BOT_CLIENT_ID: ${MANAGER_BOT_CLIENT_ID:-}
+      TRAEFIK_URL: http://traefik
+      GATEWAY_URL: http://traefik
+      CATALOG_SVC_URL: http://traefik
+      BILLING_SVC_URL: http://traefik
+      DEPLOY_SVC_URL: http://traefik
+      MONITOR_SVC_URL: http://traefik
+      DASHBOARD_URL: ${DASHBOARD_URL:-https://platform.yourdomain.com}
+      HEALTH_PORT: 8085
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8085/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      traefik:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.2"
+          memory: 128M
+    networks:
+      - platform-net-prod
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: discord_subscriptions_frontend_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      ENV: production
+      NEXT_PUBLIC_AUTH_SVC_URL: ""
+      NEXT_PUBLIC_CATALOG_SVC_URL: ""
+      NEXT_PUBLIC_BILLING_SVC_URL: ""
+      NEXT_PUBLIC_DEPLOY_SVC_URL: ""
+      NEXT_PUBLIC_MONITOR_SVC_URL: ""
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      auth-svc:
+        condition: service_healthy
+      catalog-svc:
+        condition: service_healthy
+      billing-svc:
+        condition: service_healthy
+      deploy-svc:
+        condition: service_healthy
+      monitor-svc:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.2"
+          memory: 128M
+    networks:
+      - platform-net-prod
+
+  traefik:
+    image: traefik:v3.1
+    container_name: discord_subscriptions_traefik_prod
+    restart: always
+    ports:
+      - "${TRAEFIK_HTTP_PORT:-80}:80"
+      - "${TRAEFIK_HTTPS_PORT:-443}:443"
+      - "127.0.0.1:${TRAEFIK_DASHBOARD_PORT:-8090}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik:/etc/traefik:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      auth-svc:
+        condition: service_healthy
+      catalog-svc:
+        condition: service_healthy
+      billing-svc:
+        condition: service_healthy
+      deploy-svc:
+        condition: service_healthy
+      monitor-svc:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - platform-net-prod
+
+volumes:
+  postgres_data_prod:
+  rabbitmq_data_prod:
+  vault_data_prod:
+
+networks:
+  platform-net-prod:
+    driver: bridge

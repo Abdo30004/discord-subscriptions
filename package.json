@@ -10,7 +10,11 @@
     "test:e2e": "go test -v ./tests/e2e/...",
     "build:bot": "npm --prefix bots/manager-bot run build",
     "build:frontend": "npm --prefix frontend run build",
-    "validate:docker": "docker compose config --quiet",
+    "compose:dev": "docker compose -f docker-compose.dev.yml --env-file .env.dev up -d",
+    "compose:dev:down": "docker compose -f docker-compose.dev.yml --env-file .env.dev down",
+    "compose:prod": "docker compose -f docker-compose.prod.yml --env-file .env.prod up -d",
+    "compose:prod:down": "docker compose -f docker-compose.prod.yml --env-file .env.prod down",
+    "validate:docker": "docker compose config --quiet && docker compose -f docker-compose.dev.yml --env-file .env.dev config --quiet && docker compose -f docker-compose.prod.yml --env-file .env.prod config --quiet",
     "validate:k8s": "kubectl kustomize k8s/",
     "validate:diagrams": "node scripts/validate-diagrams.mjs"
   },
